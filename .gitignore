@@ -1,0 +1,14 @@
+*.pyc
+*.egg-info
+*.sublime-project
+*.sublime-workspace
+npm-debug.log
+.DS_Store
+node_modules/
+bower_components/
+static/vendor/
+static/js/
+static/css/
+tmp/
+wip/
+.tmp/

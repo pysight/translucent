@@ -1,0 +1,30 @@
+{
+	"name": "translucent",
+	"version": "0.0.1",
+	"authors": 
+	[
+		"Ivan Smirnov <i.s.smirnov@gmail.com>"
+	],
+	"description": "translucent",
+	"license": "AGPLv3",
+	"private": true,
+	"ignore": 
+	[
+		"**/.*",
+		"node_modules",
+		"bower_components",
+		"test",
+		"tests"
+	],
+	"dependencies": 
+	{
+		"underscore": "~1.5.2",
+		"underscore.string": "~2.3.3",
+		"bootstrap": "~3.0.0",
+		"jquery": "~2.0.3",
+		"angular": "~1.0.8",
+		"socket.io-client": "~0.9.16",
+		"chosen": "https://github.com/harvesthq/chosen/releases/download/1.0.0/chosen_v1.0.0.zip",
+		"chosen-bootstrap": "git@github.com:alxlit/bootstrap-chosen.git"
+	}
+}

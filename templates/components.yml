@@ -1,0 +1,105 @@
+header:
+    container: true
+    args:
+        title: $text | $none | $expression
+        subtitle: $text | $none | $expression
+        size: default | large | small
+    template: |
+        {% set tags = {'default': 'h2', 'large': 'h1', 'small': 'h3'} %}
+        {% set tag = tags[args.size] %}
+        <div class="page-header">
+            {% if args.title or args.subtitle %}
+                <{{ tag }}>{{ args.title }}<small>{{ args.subtitle }}</small></{{ tag }}>
+            {% endif %}
+            {% if contents %}
+                <p>{{ contents }}</p>
+            {% endif %}
+        </div>
+
+list:
+    container: true
+    args:
+        style: default | unordered | ordered
+        data: $none | $expression
+    template: |
+        {% set tag = 'ol' if args.style == 'ordered' else 'ul' %}
+        <{{tag }}>
+            {% if not args.data %}
+                {% for item in raw_contents %}
+                    <li>{{ item }}</li>
+                {% endfor %}
+            {% else %}
+                <li ng-repeat="{{ args.data }}">{{ contents }}</li>
+            {% endif %}
+        </{{ tag }}>
+
+navlist:
+    container: false
+    args:
+    template: |
+        {% raw %}
+        <ul class="nav nav-stacked">
+            <li ng-repeat="nav_item in nav_items">
+                <a href="#{{ nav_item.id }}">
+                    {{ nav_item.text }}
+                </a>
+            </li>
+        </ul>
+        {% endraw %}
+
+nav:
+    container: true
+    args:
+        text: $text
+    template: |
+        <div tr-nav="{{ args.text }}">
+            {{ contents }}
+        </div>
+
+h1:
+    container: true
+    template: | 
+        <h1>{{ contents }}</h1>
+
+p:
+    container: true
+    template: | 
+        <p>{{ contents }}</p>
+
+panel:
+    container:  true
+    args:
+        header: $text | $none
+        footer: $text | $none
+        title: $bool | $expression
+        style: default | primary | $context | $expression
+    template: |
+        <div class="panel">
+            {%- call macros.class_fmt('style', 'panel-%s') %}
+                {%- if args.header %}
+                    <div class="panel-heading">
+                        {% call macros.class_if('title', 'panel-title') %}
+                            {{ args.header }}
+                        {% endcall %}
+                    </div>
+                {% endif -%}
+                {{ contents }}
+                {%- if args.footer %}
+                    <div class="panel-footer">
+                        {{ args.footer }}
+                    </div>
+                {% endif -%}
+            {% endcall -%} 
+        </div>
+
+well:
+    container:  true
+    args:
+        size: default | small | large | $expression
+    template: |
+        <div class="well">
+            {% call macros.class_fmt('size', {'small': 'well-sm', 'large': 'well-lg', 
+                    'default': 'well-default', '?': 'well-default'}) %}
+                {{ contents }}
+            {% endcall %}
+        </div>

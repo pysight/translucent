@@ -1,0 +1,41 @@
+{% macro class_if(variable, class) %}
+    {% if expr[variable] %}
+        <div ng-class="{'{{ class }}': {{ _values[variable] }}}">
+            {{ caller() }}
+        </div>
+    {% else %}
+        {% if args[variable] %}
+            <div class="{{ class }}">
+                {{ caller() }}
+            </div>
+        {% else %}
+            {{ caller() }}
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+{% macro class_fmt(variable, fmt) %}
+    {% set value = args[variable] %}
+    {% set is_expr = expr[variable] %}
+    {% if fmt is string %}
+        {% if is_expr %}
+            <div ng-class="[({{ value }})|sprintf:'{{ fmt }}']">
+                {{ caller() }}
+            </div>
+        {% else %}
+            <div class="{{ fmt % value }}">
+                {{ caller() }}
+            </div>
+        {% endif %}
+    {% elif fmt is mapping %}
+        {% if is_expr %}
+            <div ng-class="[({{ value }})|map:'{{ fmt|tojson }}']">
+                {{ caller() }}
+            </div>
+        {% else %}
+            <div class="{{ fmt[value] if value in fmt else fmt['?'] }}">
+                {{ caller() }}
+            </div>
+        {% endif %}
+    {% endif %}
+{% endmacro %}
