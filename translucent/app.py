@@ -6,8 +6,7 @@ if 'threading' in sys.modules:
 from gevent import monkey
 monkey.patch_all()
 import os
-from flask import Flask, Response, request, render_template
-from flask_debugtoolbar import DebugToolbarExtension
+from flask import Flask, Response, request
 from socketio import socketio_manage
 from socketio.server import SocketIOServer
 from socketio.namespace import BaseNamespace
@@ -70,7 +69,6 @@ class Server(object):
                         'request_vars.RequestVarsDebugPanel',
                         'template.TemplateDebugPanel',
                         'logger.LoggingPanel']]
-                # toolbar = DebugToolbarExtension(self.flask_app)
                 self.flask_app = SocketIODebugger(self.flask_app,
                     evalex=True, namespace=SocketIONamespace)
             server = SocketIOServer((self.host, self.port), self.flask_app,
