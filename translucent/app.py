@@ -63,12 +63,6 @@ class Server(object):
         try:
             print 'Listening at %s port %d...' % (self.host, self.port)
             if self.debug:
-                self.flask_app.config['SECRET_KEY'] = 'SECRET_KEY'
-                self.flask_app.config['DEBUG_TB_PANELS'] = [
-                    'flask_debugtoolbar.panels.' + panel for panel in [
-                        'request_vars.RequestVarsDebugPanel',
-                        'template.TemplateDebugPanel',
-                        'logger.LoggingPanel']]
                 self.flask_app = SocketIODebugger(self.flask_app,
                     evalex=True, namespace=SocketIONamespace)
             server = SocketIOServer((self.host, self.port), self.flask_app,
