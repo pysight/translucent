@@ -1,15 +1,29 @@
 header:
+    doc: |
+        Page header.
     container: true
     args:
-        title: $text | $none | $expression
-        subtitle: $text | $none | $expression
-        size: default | large | small
+        - title:
+            values: $text | $none | $expression
+            default: ~
+            doc: header title
+        - subtitle:
+            values: $text | $none | $expression
+            default: ~
+            doc: header subtitle
+        - size: 
+            values: default | large | small
+            default: default
+            doc: header size
     template: |
         {% set tags = {'default': 'h2', 'large': 'h1', 'small': 'h3'} %}
         {% set tag = tags[args.size] %}
         <div class="page-header">
             {% if args.title or args.subtitle %}
-                <{{ tag }}>{{ args.title }}<small>{{ args.subtitle }}</small></{{ tag }}>
+                <{{ tag }}>
+                    {% if args.title %}{{ args.title }}{% endif %}
+                    {% if args.subtitle %}<small>{{ args.subtitle }}</small>{% endif %}
+                </{{ tag }}>
             {% endif %}
             {% if contents %}
                 <p>{{ contents }}</p>
@@ -19,8 +33,12 @@ header:
 list:
     container: true
     args:
-        style: default | unordered | ordered
-        data: $none | $expression
+        - style:
+            values: default | unordered | ordered
+            default: default
+        - data:
+            values: $none | $expression
+            default: ~
     template: |
         {% set tag = 'ol' if args.style == 'ordered' else 'ul' %}
         <{{tag }}>
@@ -50,7 +68,8 @@ navlist:
 nav:
     container: true
     args:
-        text: $text
+        - text: 
+            values: $text
     template: |
         <div tr-nav="{{ args.text }}">
             {{ contents }}
@@ -69,10 +88,18 @@ p:
 panel:
     container:  true
     args:
-        header: $text | $none
-        footer: $text | $none
-        title: $bool | $expression
-        style: default | primary | $context | $expression
+        - header: 
+            values: $text | $none
+            default: ~
+        - footer: 
+            values: $text | $none
+            default: ~
+        - title: 
+            values: $bool | $expression
+            default: false
+        - style: 
+            values: default | primary | $context | $expression
+            default: default
     template: |
         <div class="panel">
             {%- call macros.class_fmt('style', 'panel-%s') %}
@@ -95,7 +122,9 @@ panel:
 well:
     container:  true
     args:
-        size: default | small | large | $expression
+        - size: 
+            values: default | small | large | $expression
+            default: default
     template: |
         <div class="well">
             {% call macros.class_fmt('size', {'small': 'well-sm', 'large': 'well-lg', 
