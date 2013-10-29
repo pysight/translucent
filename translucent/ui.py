@@ -2,9 +2,7 @@
 
 import jinja2
 import yaml
-import inspect
 import bs4
-import types
 from collections import OrderedDict
 
 from .utils import tojson, escape_text, new_closure
@@ -132,16 +130,16 @@ class BootstrapUI:
         rendered_contents = []
         for element in contents:
             if isinstance(element, basestring):
-                # rendered_contents.append(escape_text(element, angular=True).strip())
-                rendered_contents.append(element.strip())
+                s = element
             elif isinstance(element, jinja2.Markup):
-                rendered_contents.append(str(element).strip())
-            # elif hasattr(element, '__call__'):
-                # rendered_contents.append(str(element()).strip())
-            elif isinstance(element, (Component, ComponentWrapper)):
-                rendered_contents.append(str(element()).strip())
+                s = str(element)
+            elif isinstance(element, Component):
+                s = str(element())
+            elif isinstance(element, ComponentWrapper):
+                s = str(element()())
             else:
                 raise Exception('cannot render element: %s' % repr(element))
+            rendered_contents.append(str(s).strip())
         return jinja2.Markup(' '.join(rendered_contents))
 
     @staticmethod
