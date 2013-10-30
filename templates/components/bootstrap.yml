@@ -30,27 +30,6 @@ header:
             {% endif %}
         </div>
 
-list:
-    container: true
-    args:
-        - style:
-            values: default | unordered | ordered
-            default: default
-        - data:
-            values: $none | $expression
-            default: ~
-    template: |
-        {% set tag = 'ol' if args.style == 'ordered' else 'ul' %}
-        <{{tag }}>
-            {% if not args.data %}
-                {% for item in raw_contents %}
-                    <li>{{ item }}</li>
-                {% endfor %}
-            {% else %}
-                <li ng-repeat="{{ args.data }}">{{ contents }}</li>
-            {% endif %}
-        </{{ tag }}>
-
 navlist:
     container: false
     args:
@@ -74,16 +53,6 @@ nav:
         <div tr-nav="{{ args.text }}">
             {{ contents }}
         </div>
-
-h1:
-    container: true
-    template: | 
-        <h1>{{ contents }}</h1>
-
-p:
-    container: true
-    template: | 
-        <p>{{ contents }}</p>
 
 panel:
     container:  true

@@ -31,39 +31,40 @@ class ComponentWrapper:
         return self()[key]
 
 
-class BootstrapUI:
+class RenderEngine:
 
     def __init__(self, layout=None, title=''):
         try:
-            loader = jinja2.PackageLoader(__package__, '../templates')
+            self.loader = jinja2.PackageLoader(__package__, '../templates')
         except:
-            loader = jinja2.FileSystemLoader('../templates')
-        self.env = jinja2.Environment(loader=loader)
-        get_source = lambda name: loader.get_source(self.env, name)[0]
+            self.loader = jinja2.FileSystemLoader('../templates')
+        self.env = jinja2.Environment(loader=self.loader)
         self.root_template = self.env.get_template('index.html')
         self.components = {}
-        self.register_components(yaml.load(get_source('components.yml')))
+        self.register_components('components/default.yml')
         self.register_filter('tojson', tojson)
         self.macros = {}
-        self.register_macros('macros', get_source('macros.html'))
+        self.register_macros('macros', self.load_source('macros.html'))
         self.layout = layout
         self.title = title
         self.blocks = {}
 
+    def load_source(self, path):
+        return self.loader.get_source(self.env, path)[0]
+
     def register_filter(self, name, fn):
         self.env.filters[name] = fn
 
-    def register_component(self, name, component):
-        self.components[name] = component
-
     def register_components(self, components):
+        if isinstance(components, basestring):
+            components = yaml.load(self.load_source(components))
         for name, component in components.iteritems():
             args = component.get('args', {}) or {}
             if isinstance(args, list):
                 args = OrderedDict(item for arg in map(dict.items, args) for item in arg)
             component['args'] = args
         self.components.update(components)
-        self.generate_components()
+        self.generate_components(components)
 
     def register_macros(self, name, macros):
         self.macros[name] = self.env.from_string(macros)
@@ -74,6 +75,18 @@ class BootstrapUI:
     def generate_imports(self):
         return ''.join(['{%% import %(macros)s as %(macros)s with context %%}\n' %
             {'macros': key} for key in self.macros.keys()])
+
+    def generate_components(self, components=None):
+        components = components or self.components
+        for name, component in components.iteritems():
+            args = component['args']
+            fn_args = ', '.join([arg + '=' + arg for arg in args.iterkeys()] + ['**kwargs'])
+            code = "return self.render_component('%s', %s)" % (name, fn_args)
+            docstring = component.get('docstring', None)
+            defaults = dict((k, v['default']) for k, v in args.iteritems() if 'default' in v)
+            wrapper = ComponentWrapper(new_closure(name, args.keys(), code,
+                defaults=defaults, docstring=docstring, kwargs=True, closure={'self': self}))
+            setattr(self, name, wrapper)
 
     def render_component(self, name, **kwargs):
         if name not in self.components:
@@ -125,8 +138,8 @@ class BootstrapUI:
                 expr[arg] = True
         return {'args': kwargs.copy(), 'expr': expr}
 
-    @classmethod
-    def merge(cls, *contents):
+    @staticmethod
+    def merge(*contents):
         rendered_contents = []
         for element in contents:
             if isinstance(element, basestring):
@@ -155,14 +168,3 @@ class BootstrapUI:
         elif option == '$none':
             return value is None
         return False
-
-    def generate_components(self):
-        for name, component in self.components.iteritems():
-            args = component['args']
-            fn_args = ', '.join([arg + '=' + arg for arg in args.iterkeys()] + ['**kwargs'])
-            code = "return self.render_component('%s', %s)" % (name, fn_args)
-            docstring = component.get('docstring', None)
-            defaults = dict((k, v['default']) for k, v in args.iteritems() if 'default' in v)
-            wrapper = ComponentWrapper(new_closure(name, args.keys(), code,
-                defaults=defaults, docstring=docstring, kwargs=True, closure={'self': self}))
-            setattr(self, name, wrapper)
