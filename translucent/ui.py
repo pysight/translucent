@@ -3,7 +3,7 @@
 import jinja2
 import yaml
 import bs4
-from collections import OrderedDict
+from collections import OrderedDict, Hashable, Callable
 
 from .utils import tojson, escape_text, new_closure, is_valid_name
 
@@ -48,6 +48,10 @@ class RenderEngine:
         self.layout = layout
         self.title = title
         self.blocks = {}
+        self.value_types = {}
+        self.register_value_type('$bool', bool, 'bool')
+        self.register_value_type('$none', None, 'None')
+        self.register_value_type('$text', basestring, 'text')
 
     def load_source(self, path):
         return self.loader.get_source(self.env, path)[0]
@@ -75,6 +79,21 @@ class RenderEngine:
 
     def register_function(self, name, fn):
         self.env.globals[name] = fn
+
+    def register_value_type(self, name, value_type, docstring=None):
+        if not isinstance(name, basestring) or name[0] != '$' or not is_valid_name(name[1:]):
+            raise Exception('invalid name for value type name: "%s"' % name)
+        if type(value_type) is type:
+            fn = lambda v: isinstance(v, value_type)
+        elif isinstance(value_type, list):
+            fn = lambda v: v in value_type
+        elif isinstance(value_type, Hashable):
+            fn = lambda v: v == value_type
+        elif isinstance(value_type, Callable):
+            fn = value_type
+        else:
+            raise Exception('value type must be a type, a list, a callable, or a hashable')
+        self.value_types[name] = {'fn': fn, 'docstring': docstring}
 
     def generate_imports(self):
         return ''.join(['{%% import %(macros)s as %(macros)s with context %%}\n' %
@@ -122,8 +141,14 @@ class RenderEngine:
             self.blocks[name] = jinja2.Markup(self.merge(*contents))
         return block_fn
 
-    @classmethod
-    def parse_args(cls, component, kwargs):
+    def validate_value(self, option, value):
+        if option[0] is not '$':
+            return option == value
+        elif option in self.value_types:
+            return self.value_types[option]['fn'](value)
+        return False
+
+    def parse_args(self, component, kwargs):
         expr = dict((arg, False) for arg in kwargs.keys())
         for arg, value in kwargs.iteritems():
             if arg not in component['args']:
@@ -131,7 +156,7 @@ class RenderEngine:
             options = map(str.strip, component['args'][arg]['values'].split('|'))
             expression_allowed = '$expression' in options
             options = filter(lambda option: option != '$expression', options)
-            match_found = any(map(lambda o: cls.validate_single(o, value), options))
+            match_found = any(map(lambda o: self.validate_value(o, value), options))
             if not match_found:
                 if not expression_allowed:
                     raise Exception('invalid argument: %s=%s' % (arg, repr(value)))
@@ -156,17 +181,3 @@ class RenderEngine:
                 raise Exception('cannot render element: %s' % repr(element))
             rendered_contents.append(str(s).strip())
         return jinja2.Markup(' '.join(rendered_contents))
-
-    @staticmethod
-    def validate_single(option, value):
-        if option[0] is not '$':
-            return option == value
-        elif option == '$context':
-            return value in ['success', 'warning', 'info', 'danger']
-        elif option == '$bool':
-            return isinstance(value, bool)
-        elif option == '$text':
-            return isinstance(value, basestring)
-        elif option == '$none':
-            return value is None
-        return False

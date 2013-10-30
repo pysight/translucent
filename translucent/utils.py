@@ -48,10 +48,16 @@ def escape_text(text, angular=True):
 
 
 def new_closure(name, args, code, defaults=None, closure=None, kwargs=None, docstring=None):
+    if not is_valid_name(name):
+        raise Exception('invalid function name: "%s"' % name)
+    if kwargs is not None and not is_valid_name(kwargs):
+        raise Exception('invalid kwargs variable name: "%s"' % kwargs)
     defaults = defaults or {}
-    for arg in defaults.iterkeys():
+    for arg, v in defaults.iteritems():
         if arg not in args:
-            raise Exception('invalid default: non-existent argument "%s"' % arg)
+            raise Exception('invalid default key: non-existent argument "%s"' % arg)
+        if not isinstance(v, (int, long, float, dict, basestring, list, tuple, type(None))):
+            raise Exception('cannot serialize default value for "%s": "%s"' % (arg, v))
     defaults_locations = tuple(sorted(map(args.index, defaults.keys())))
     expected_locations = tuple(range(len(args) - len(defaults), len(args)))
     if defaults_locations != expected_locations:
@@ -60,8 +66,9 @@ def new_closure(name, args, code, defaults=None, closure=None, kwargs=None, docs
         repr(defaults[arg])) for arg in args] + ['**' + kwargs] if kwargs else [])
     closure = closure or {}
     code = '\n'.join(['\t\t' + line for line in textwrap.dedent(code).split('\n')])
-    code = 'def _({closure}):\n\tdef {name}({args}):\n{code}\n\treturn {name}'.replace(
-        '\t', ' ' * 4).format(name=name, closure=', '.join(closure.keys()), args=args, code=code)
+    code = 'def _({closure}):\n\tdef {name}({args}):\n{code}\n\treturn {name}'.format(
+        name=name, closure=', '.join(closure.keys()), args=args, code=code).replace(
+        '\t', ' ' * 4)
     types.FunctionType(compile(code, __name__, 'exec'), globals(), name)()
     fn = globals()['_'](*closure.values())
     if docstring is not None:
@@ -70,4 +77,4 @@ def new_closure(name, args, code, defaults=None, closure=None, kwargs=None, docs
 
 
 def is_valid_name(name):
-    return re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', name)
+    return isinstance(name, basestring) and re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', name)
