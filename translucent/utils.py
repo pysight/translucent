@@ -3,6 +3,7 @@
 import textwrap
 import jinja2
 import types
+import re
 
 
 def tojson(obj, single=True, sep=(',', ':')):
@@ -46,7 +47,7 @@ def escape_text(text, angular=True):
         return ''.join(parts)
 
 
-def new_closure(name, args, code, defaults=None, closure=None, kwargs=False, docstring=None):
+def new_closure(name, args, code, defaults=None, closure=None, kwargs=None, docstring=None):
     defaults = defaults or {}
     for arg in defaults.iterkeys():
         if arg not in args:
@@ -56,8 +57,7 @@ def new_closure(name, args, code, defaults=None, closure=None, kwargs=False, doc
     if defaults_locations != expected_locations:
         raise Exception('default values not allowed before positional arguments')
     args = ', '.join([arg if arg not in defaults else '%s=%s' % (arg,
-        repr(defaults[arg])) for arg in args]
-        + ['**kwargs'] * bool(kwargs))
+        repr(defaults[arg])) for arg in args] + ['**' + kwargs] if kwargs else [])
     closure = closure or {}
     code = '\n'.join(['\t\t' + line for line in textwrap.dedent(code).split('\n')])
     code = 'def _({closure}):\n\tdef {name}({args}):\n{code}\n\treturn {name}'.replace(
@@ -67,3 +67,7 @@ def new_closure(name, args, code, defaults=None, closure=None, kwargs=False, doc
     if docstring is not None:
         fn.__doc__ = docstring
     return fn
+
+
+def is_valid_name(name):
+    return re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', name)

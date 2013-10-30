@@ -5,7 +5,7 @@ import yaml
 import bs4
 from collections import OrderedDict
 
-from .utils import tojson, escape_text, new_closure
+from .utils import tojson, escape_text, new_closure, is_valid_name
 
 
 class Component:
@@ -59,6 +59,10 @@ class RenderEngine:
         if isinstance(components, basestring):
             components = yaml.load(self.load_source(components))
         for name, component in components.iteritems():
+            if not is_valid_name(name):
+                raise Exception('invalid component name: "%s"' % name)
+            if 'template' not in component:
+                raise Exception('template missing for component "%s"' % name)
             args = component.get('args', {}) or {}
             if isinstance(args, list):
                 args = OrderedDict(item for arg in map(dict.items, args) for item in arg)
@@ -84,8 +88,8 @@ class RenderEngine:
             code = "return self.render_component('%s', %s)" % (name, fn_args)
             docstring = component.get('docstring', None)
             defaults = dict((k, v['default']) for k, v in args.iteritems() if 'default' in v)
-            wrapper = ComponentWrapper(new_closure(name, args.keys(), code,
-                defaults=defaults, docstring=docstring, kwargs=True, closure={'self': self}))
+            wrapper = ComponentWrapper(new_closure(name, args.keys(), code, defaults=defaults,
+                docstring=docstring, kwargs='kwargs', closure={'self': self}))
             setattr(self, name, wrapper)
 
     def render_component(self, name, **kwargs):
@@ -94,8 +98,6 @@ class RenderEngine:
         component = self.components[name]
         nav = kwargs.pop('nav', None)
         args = self.parse_args(component, kwargs)
-        if 'template' not in component:
-            raise Exception('template missing for component "%s"' % name)
         template = self.env.from_string(self.generate_imports() + component['template'])
         args.update(self.macros)
         def render_fn(*contents):

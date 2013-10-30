@@ -32,7 +32,6 @@ header:
 
 navlist:
     container: false
-    args:
     template: |
         {% raw %}
         <ul class="nav nav-stacked">
