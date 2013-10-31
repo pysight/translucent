@@ -9,7 +9,7 @@ from .utils import tojson, escape_text, new_closure, is_valid_name, \
     is_options_expression, is_string
 
 
-class Component:
+class Component(object):
 
     def __init__(self, fn, docstring=None):
         self.fn = fn
@@ -23,16 +23,20 @@ class Component:
         return self.fn(*args)
 
 
-class ComponentWrapper:
+class ComponentWrapper(object):
 
     def __init__(self, fn):
+        self.fn = fn
         self.__call__ = fn
 
     def __getitem__(self, key):
         return self()[key]
 
+    def __call__(self, *args, **kwargs):
+        return self.fn(*args, **kwargs)
 
-class RenderEngine:
+
+class RenderEngine(object):
 
     def __init__(self, layout=None, title=''):
         try:

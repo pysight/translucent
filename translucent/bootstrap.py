@@ -5,7 +5,7 @@ import yaml
 from .ui import RenderEngine
 
 
-class BootstrapUI(RenderEngine, object):
+class BootstrapUI(RenderEngine):
 
     def __init__(self, *args, **kwargs):
         super(BootstrapUI, self).__init__(*args, **kwargs)
