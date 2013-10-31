@@ -120,9 +120,9 @@ select:
                 class="form-control"
             {% endif %}
             {% if args.options is not sequence and args.options is not mapping %}
-                ng-options="{{ options }}"
+                ng-options="{{ args.options }}"
             {% endif %}
-            ng-model="{{ id }}"
+            ng-model="env.{{ args.id }}"
         >
         {% if args.options is mapping %}
             {% for k, v in args.options.iteritems() %}
