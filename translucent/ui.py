@@ -40,27 +40,22 @@ class RenderEngine(object):
 
     def __init__(self, layout=None, title=''):
         try:
-            self.loader = jinja2.PackageLoader(__package__, '../templates')
+            rel_path = '../templates'
+            self.loader = jinja2.PackageLoader(__package__, rel_path)
         except:
-            self.loader = jinja2.FileSystemLoader('../templates')
-        self.env = jinja2.Environment(loader=self.loader)
-        self.root_template = self.env.get_template('index.html')
-        self.components = {}
-        self.register_components('components/default.yml')
-        self.register_filter('tojson', tojson)
-        self.macros = {}
-        self.register_macros('macros', self.load_source('macros.html'))
+            self.loader = jinja2.FileSystemLoader(rel_path)
         self.layout = layout
         self.title = title
+        self.components = {}
+        self.macros = {}
         self.blocks = {}
         self.value_types = {}
-        self.register_value_type('$bool', bool, 'bool')
-        self.register_value_type('$none', None, 'None')
-        self.register_value_type('$text', is_string, 'text')
-        self.register_value_type('$list', list, 'list')
-        self.register_value_type('$dict', dict, 'dict')
-        self.register_value_type('$options', is_options_expression, 'options')
-        self.register_value_type('$id', is_valid_name, 'id')
+        self.env = jinja2.Environment(loader=self.loader)
+        self.root_template = self.env.get_template('index.html')
+        self.register_components('components/default.yml')
+        self.register_filter('tojson', tojson)
+        self.register_macros('macros', self.load_source('macros.html'))
+        self.register_default_value_types()
 
     def load_source(self, path):
         return self.loader.get_source(self.env, path)[0]
@@ -104,6 +99,15 @@ class RenderEngine(object):
             raise Exception('value type must be a type, a list, a callable, or a hashable')
         self.value_types[name] = {'fn': fn, 'docstring': docstring}
 
+    def register_default_value_types(self):
+        self.register_value_type('$bool', bool, 'bool')
+        self.register_value_type('$none', None, 'None')
+        self.register_value_type('$text', is_string, 'text')
+        self.register_value_type('$list', list, 'list')
+        self.register_value_type('$dict', dict, 'dict')
+        self.register_value_type('$options', is_options_expression, 'options')
+        self.register_value_type('$id', is_valid_name, 'id')
+
     def generate_imports(self):
         return ''.join(['{%% import %(macros)s as %(macros)s with context %%}\n' %
             {'macros': key} for key in self.macros.keys()])
@@ -129,14 +133,10 @@ class RenderEngine(object):
         template = self.env.from_string(self.generate_imports() + component['template'])
         args.update(self.macros)
         def render_fn(*contents):
-            if contents:
-                if not component.get('container', False):
-                    raise Exception('component "%s" is not a container' % name)
-                args['contents'] = self.merge(*contents)
-                args['raw_contents'] = map(lambda c: self.merge(c), contents)
-            else:
-                args['contents'] = ''
-                args['raw_contents'] = []
+            if contents and not component.get('container', False):
+                raise Exception('component "%s" is not a container' % name)
+            args['contents'] = self.merge(*contents)
+            args['raw_contents'] = map(lambda c: self.merge(c), contents)
             html = jinja2.Markup(template.render(**args))
             return html if not nav else self.nav(text=nav)(html)
         return Component(render_fn)
@@ -176,6 +176,8 @@ class RenderEngine(object):
 
     @staticmethod
     def merge(*contents):
+        if not contents:
+            return ''
         rendered_contents = []
         for element in contents:
             if is_string(element):
