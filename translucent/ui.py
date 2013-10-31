@@ -5,7 +5,8 @@ import yaml
 import bs4
 from collections import OrderedDict, Hashable, Callable
 
-from .utils import tojson, escape_text, new_closure, is_valid_name
+from .utils import tojson, escape_text, new_closure, is_valid_name, \
+    is_options_expression, is_string
 
 
 class Component:
@@ -51,7 +52,11 @@ class RenderEngine:
         self.value_types = {}
         self.register_value_type('$bool', bool, 'bool')
         self.register_value_type('$none', None, 'None')
-        self.register_value_type('$text', basestring, 'text')
+        self.register_value_type('$text', is_string, 'text')
+        self.register_value_type('$list', list, 'list')
+        self.register_value_type('$dict', dict, 'dict')
+        self.register_value_type('$options', is_options_expression, 'options')
+        self.register_value_type('$id', is_valid_name, 'id')
 
     def load_source(self, path):
         return self.loader.get_source(self.env, path)[0]
@@ -60,7 +65,7 @@ class RenderEngine:
         self.env.filters[name] = fn
 
     def register_components(self, components):
-        if isinstance(components, basestring):
+        if is_string(components):
             components = yaml.load(self.load_source(components))
         for name, component in components.iteritems():
             if not is_valid_name(name):
@@ -81,16 +86,16 @@ class RenderEngine:
         self.env.globals[name] = fn
 
     def register_value_type(self, name, value_type, docstring=None):
-        if not isinstance(name, basestring) or name[0] != '$' or not is_valid_name(name[1:]):
+        if not is_string(name) or name[0] != '$' or not is_valid_name(name[1:]):
             raise Exception('invalid name for value type name: "%s"' % name)
         if type(value_type) is type:
             fn = lambda v: isinstance(v, value_type)
         elif isinstance(value_type, list):
             fn = lambda v: v in value_type
-        elif isinstance(value_type, Hashable):
-            fn = lambda v: v == value_type
         elif isinstance(value_type, Callable):
             fn = value_type
+        elif isinstance(value_type, Hashable):
+            fn = lambda v: v == value_type
         else:
             raise Exception('value type must be a type, a list, a callable, or a hashable')
         self.value_types[name] = {'fn': fn, 'docstring': docstring}
@@ -160,7 +165,7 @@ class RenderEngine:
             if not match_found:
                 if not expression_allowed:
                     raise Exception('invalid argument: %s=%s' % (arg, repr(value)))
-                if not isinstance(value, basestring):
+                if not is_string(value):
                     raise Exception('%s: expected expresssion, got %s' % (arg, repr(value)))
                 expr[arg] = True
         return {'args': kwargs.copy(), 'expr': expr}
@@ -169,7 +174,7 @@ class RenderEngine:
     def merge(*contents):
         rendered_contents = []
         for element in contents:
-            if isinstance(element, basestring):
+            if is_string(element):
                 s = element
             elif isinstance(element, jinja2.Markup):
                 s = str(element)

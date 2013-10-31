@@ -6,6 +6,13 @@ import types
 import re
 
 
+def is_string(x):
+    return isinstance(x, basestring)
+
+def is_number(x):
+    return isinstance(x, (int, long, float))
+
+
 def tojson(obj, single=True, sep=(',', ':')):
     c = "'" if single else '"'
     quote = lambda s: c + s.replace(c, '\\' + c) + c
@@ -15,9 +22,9 @@ def tojson(obj, single=True, sep=(',', ':')):
         return 'true'
     elif obj is False:
         return 'false'
-    elif isinstance(obj, basestring):
+    elif is_string(obj):
         return quote(obj)
-    elif isinstance(obj, (int, long, float)):
+    elif is_number(obj):
         return str(obj)
     elif isinstance(obj, (tuple, list)):
         return '[%s]' % sep[0].join([tojson(elem) for elem in obj])
@@ -77,4 +84,11 @@ def new_closure(name, args, code, defaults=None, closure=None, kwargs=None, docs
 
 
 def is_valid_name(name):
-    return isinstance(name, basestring) and re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', name)
+    return is_string(name) and bool(re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', name))
+
+
+def is_options_expression(s):
+    return is_string(s) and bool(re.match(
+        r'^\s*(.*?)(?:\s+as\s+(.*?))?(?:\s+group\s+by\s+(.*))?\s+' +
+        r'for\s+(?:([\$\w][\$\w]*)|(?:\(\s*([\$\w][\$\w]*)\s*,\s*([\$\w][\$\w]*)\s*\)))\s+' +
+        r'in\s+(.*?)(?:\s+track\s+by\s+(.*?))?$', s))

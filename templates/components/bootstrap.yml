@@ -100,3 +100,37 @@ well:
                 {{ contents }}
             {% endcall %}
         </div>
+
+select:
+    container: false
+    args:
+        - id:
+            values: $id
+        - options:
+            values: $dict | $list | $options
+        - placeholder:
+            values: $bool
+            default: false
+        - form:
+            values: $bool
+            default: true
+    template: |
+        <select
+            {% if args.form %} 
+                class="form-control"
+            {% endif %}
+            {% if args.options is not sequence and args.options is not mapping %}
+                ng-options="{{ options }}"
+            {% endif %}
+            ng-model="{{ id }}"
+        >
+        {% if args.options is mapping %}
+            {% for k, v in args.options.iteritems() %}
+                <option value="{{ k }}">{{ v }}</option>
+            {% endfor %}
+        {% elif args.options is sequence %}
+            {% for k in args.options %}
+                <option>{{ k }}</option>
+            {% endfor %}
+        {% endif %}
+        </select>
