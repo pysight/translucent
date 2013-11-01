@@ -1,7 +1,8 @@
 {
     "name": "translucent",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "translucent",
+    "private": true,
     "author": 
     {
         "name": "Ivan Smirnov",
@@ -12,19 +13,18 @@
         "node": ">=0.6",
         "npm": ">=1"
     },
-    "version": "0.0.1",
-    "private": true,
     "dependencies": 
     {
         "grunt": ">=0.4",
+        "bower": "*",
+        "coffeeify": "*",
         "grunt-contrib-watch": "*",
         "grunt-contrib-uglify": "*",
-        "grunt-coffeeify": "*",
+        "grunt-browserify": "*",
         "grunt-contrib-stylus": "*",
         "grunt-contrib-copy": "*",
         "grunt-usemin": "*",
         "grunt-contrib-cssmin": "*",
-        "grunt-contrib-concat": "*",
-        "bower": "*"
+        "grunt-contrib-concat": "*"
     }
 }

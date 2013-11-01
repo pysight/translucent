@@ -7,8 +7,8 @@ ui.set('top')(
     ui.header('Title', 'Subtitle')['Header text.']
 )
 ui.set('left')(
-    ui.panel('Nav List', style='success')[ui.navlist],
-    ui.select('id1', ['hello', 'world'])
+    ui.panel('Nav List', style='env.style')[ui.navlist],
+    ui.select('style', ['success', 'info', 'warning', 'danger'])
 )
 ui.set('right')(
     ui.panel('A panel', style='info')[

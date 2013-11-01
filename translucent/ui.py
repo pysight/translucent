@@ -180,10 +180,10 @@ class RenderEngine(object):
             return ''
         rendered_contents = []
         for element in contents:
-            if is_string(element):
-                s = element
-            elif isinstance(element, jinja2.Markup):
+            if isinstance(element, jinja2.Markup):
                 s = str(element)
+            elif is_string(element):
+                s = element
             elif isinstance(element, Component):
                 s = str(element())
             elif isinstance(element, ComponentWrapper):

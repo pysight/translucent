@@ -18,33 +18,39 @@ module.exports = (grunt) ->
 		copy:
 			vendor:
 				files: [
-					{expand: true, cwd: 'bower_components/chosen', src: '*.png', dest: 'static/vendor/'}
+					{
+						expand: true, 
+						cwd: 'bower_components/chosen', 
+						src: '*.png', 
+						dest: 'static/vendor/'
+					}
 				]
-		coffeeify:
-			options:
-				debug: true 
-			files:
-				src: ['coffee/*.coffee']
-				dest: 'static/js/app.js'
+		browserify:
+  			dist:
+    			files:
+      				'static/js/app.js': ['coffee/*.coffee']
+    		options:
+      			transform: ['coffeeify']
+      			debug: true
 		stylus:
 			compile:
 				files:
 					'static/css/style.css': 'stylus/*.styl'
 
-	grunt.loadNpmTasks('grunt-contrib-copy')
-	grunt.loadNpmTasks('grunt-contrib-watch')
-	grunt.loadNpmTasks('grunt-contrib-stylus')
-	grunt.loadNpmTasks('grunt-contrib-cssmin')
-	grunt.loadNpmTasks('grunt-contrib-concat')
-	grunt.loadNpmTasks('grunt-contrib-uglify')
-	grunt.loadNpmTasks('grunt-coffeeify')
-	grunt.loadNpmTasks('grunt-usemin')
+	grunt.loadNpmTasks 'grunt-contrib-copy'
+	grunt.loadNpmTasks 'grunt-contrib-watch'
+	grunt.loadNpmTasks 'grunt-contrib-stylus'
+	grunt.loadNpmTasks 'grunt-contrib-cssmin'
+	grunt.loadNpmTasks 'grunt-contrib-concat'
+	grunt.loadNpmTasks 'grunt-contrib-uglify'
+	grunt.loadNpmTasks 'grunt-usemin'
+	grunt.loadNpmTasks 'grunt-browserify'
 
 	grunt.registerTask 'coffee-task', ['coffeeify']
 	grunt.registerTask 'stylus-task', ['stylus']
 
 	grunt.registerTask 'dist', ['copy:vendor', 'useminPrepare', 'concat', 'cssmin', 'uglify']
-	grunt.registerTask 'build', ['coffeeify', 'stylus']
+	grunt.registerTask 'build', ['browserify', 'stylus']
 	grunt.registerTask 'default', ['build']
 	grunt.registerTask 'dev', ['build', 'watch']
 	grunt.registerTask 'all', ['dist', 'build']
