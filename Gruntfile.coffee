@@ -46,7 +46,7 @@ module.exports = (grunt) ->
 	grunt.loadNpmTasks 'grunt-usemin'
 	grunt.loadNpmTasks 'grunt-browserify'
 
-	grunt.registerTask 'coffee-task', ['coffeeify']
+	grunt.registerTask 'coffee-task', ['browserify']
 	grunt.registerTask 'stylus-task', ['stylus']
 
 	grunt.registerTask 'dist', ['copy:vendor', 'useminPrepare', 'concat', 'cssmin', 'uglify']
