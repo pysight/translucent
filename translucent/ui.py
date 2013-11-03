@@ -5,7 +5,7 @@ import yaml
 from collections import OrderedDict, Hashable, Callable
 
 from .utils import new_closure, is_valid_name, is_options_expression, is_string
-from .html import format_page, escape, tojson
+from .html import format_page, escape, to_json, attr_if
 
 
 class Component(object):
@@ -52,7 +52,8 @@ class RenderEngine(object):
         self.env = jinja2.Environment(loader=self.loader)
         self.root_template = self.env.get_template('index.html')
         self.register_components('components/default.yml')
-        self.register_filter('tojson', tojson)
+        self.register_filter('to_json', to_json)
+        self.register_function('attr_if', attr_if)
         self.register_macros('macros', self.load_source('macros.html'))
         self.register_default_value_types()
 

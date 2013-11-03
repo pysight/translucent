@@ -126,17 +126,12 @@ select:
             values: $none | $expression
             default: $none
     template: |
-        <select
-            {% if args.form %} 
-                class="form-control"
-            {% endif %}
-            {% if args.options is not sequence and args.options is not mapping %}
-                ng-options="{{ args.options }}"
-            {% endif %}
-            {% if args.init %}
-                ng-init="env.{{ args.id }} = {{ args.init|tojson }};"
-            {% endif %}
-            ng-model="env.{{ args.id }}"
+        <select ng-model="env.{{ args.id }}"
+            {{ attr_if(args.form, 'class', 'form-control') }} 
+            {{ attr_if(args.init, 'ng-init', 
+                'env.%s=%s;'|format(args.id, args.init|to_json)) }}
+            {{ attr_if(args.options is not sequence and args.options is not mapping,
+                'ng-options', '"%s"'|format(args.options)) }}
         >
         {% if args.options is mapping %}
             {% for k, v in args.options.iteritems() %}

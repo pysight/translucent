@@ -1,6 +1,6 @@
 {% macro class_if(variable, class) %}
     {% if expr[variable] %}
-        <div ng-class="{'{{ class }}': {{ _values[variable] }}}">
+        <div ng-class="{'{{ class }}': {{ args[variable] }}}">
             {{ caller() }}
         </div>
     {% else %}
@@ -29,7 +29,7 @@
         {% endif %}
     {% elif fmt is mapping %}
         {% if is_expr %}
-            <div ng-class="[({{ value }})|map:'{{ fmt|tojson }}']">
+            <div ng-class="[({{ value }})|map:'{{ fmt|to_json }}']">
                 {{ caller() }}
             </div>
         {% else %}

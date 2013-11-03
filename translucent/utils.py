@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import textwrap
-import jinja2
 import types
 import re
 
