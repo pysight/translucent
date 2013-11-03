@@ -5,6 +5,29 @@ from bs4.element import (Tag, NavigableString,
     EntitySubstitution, AttributeValueWithCharsetSubstitution)
 import jinja2
 
+from .utils import is_string
+
+
+def tojson(obj, single=True, sep=(',', ':')):
+    c = "'" if single else '"'
+    quote = lambda s: c + s.replace(c, '\\' + c) + c
+    if obj is None:
+        return 'null'
+    elif obj is True:
+        return 'true'
+    elif obj is False:
+        return 'false'
+    elif is_string(obj):
+        return quote(obj)
+    elif is_number(obj):
+        return str(obj)
+    elif isinstance(obj, (tuple, list)):
+        return '[%s]' % sep[0].join([tojson(elem) for elem in obj])
+    elif isinstance(obj, dict):
+        return '{%s}' % sep[0].join(['%s%s%s' %
+            (quote(k), sep[1], tojson(v)) for k, v in obj.iteritems()])
+    raise Exception('cannot convert to json: "%s"' % str(obj))
+
 
 def escape(s):
     return unicode(jinja2.escape(s))
@@ -148,7 +171,5 @@ class TranslucentSoup(TranslucentTag, bs4.BeautifulSoup):
     def prettify(self, **kwargs):
         return super(TranslucentSoup, self).decode().encode('utf-8', 'xmlcharrefreplace')
 
-def prettify(html):
-    soup = TranslucentSoup(html)
-    return soup.prettify()
-
+def format_page(html):
+    return TranslucentSoup(html).prettify()

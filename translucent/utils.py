@@ -13,45 +13,15 @@ def is_number(x):
     return isinstance(x, (int, long, float))
 
 
-def tojson(obj, single=True, sep=(',', ':')):
-    c = "'" if single else '"'
-    quote = lambda s: c + s.replace(c, '\\' + c) + c
-    if obj is None:
-        return 'null'
-    elif obj is True:
-        return 'true'
-    elif obj is False:
-        return 'false'
-    elif is_string(obj):
-        return quote(obj)
-    elif is_number(obj):
-        return str(obj)
-    elif isinstance(obj, (tuple, list)):
-        return '[%s]' % sep[0].join([tojson(elem) for elem in obj])
-    elif isinstance(obj, dict):
-        return '{%s}' % sep[0].join(['%s%s%s' %
-            (quote(k), sep[1], tojson(v)) for k, v in obj.iteritems()])
-    raise Exception('cannot convert to json: "%s"' % str(obj))
+def is_valid_name(name):
+    return is_string(name) and bool(re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', name))
 
 
-def escape_text(text, angular=True):
-    escape = lambda s: str(jinja2.escape(s))
-    if not angular:
-        return escape(text)
-    else:
-        index, parts = 0, []
-        while index < len(text):
-            start = text.find('{{', index)
-            end = text.find('}}', start + 2)
-            if start is not -1 and end is not -1:
-                if start is not index:
-                    parts.append(escape(text[index:start]))
-                parts.append(text[start:end + 2])
-                index = end + 2
-            else:
-                parts.append(escape(text[index:]))
-                break
-        return ''.join(parts)
+def is_options_expression(s):
+    return is_string(s) and bool(re.match(
+        r'^\s*(.*?)(?:\s+as\s+(.*?))?(?:\s+group\s+by\s+(.*))?\s+' +
+        r'for\s+(?:([\$\w][\$\w]*)|(?:\(\s*([\$\w][\$\w]*)\s*,\s*([\$\w][\$\w]*)\s*\)))\s+' +
+        r'in\s+(.*?)(?:\s+track\s+by\s+(.*?))?$', s))
 
 
 def new_closure(name, args, code, defaults=None, closure=None, kwargs=None, docstring=None):
@@ -81,14 +51,3 @@ def new_closure(name, args, code, defaults=None, closure=None, kwargs=None, docs
     if docstring is not None:
         fn.__doc__ = docstring
     return fn
-
-
-def is_valid_name(name):
-    return is_string(name) and bool(re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', name))
-
-
-def is_options_expression(s):
-    return is_string(s) and bool(re.match(
-        r'^\s*(.*?)(?:\s+as\s+(.*?))?(?:\s+group\s+by\s+(.*))?\s+' +
-        r'for\s+(?:([\$\w][\$\w]*)|(?:\(\s*([\$\w][\$\w]*)\s*,\s*([\$\w][\$\w]*)\s*\)))\s+' +
-        r'in\s+(.*?)(?:\s+track\s+by\s+(.*?))?$', s))

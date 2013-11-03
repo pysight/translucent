@@ -2,12 +2,10 @@
 
 import jinja2
 import yaml
-# import bs4
 from collections import OrderedDict, Hashable, Callable
 
-from .utils import tojson, escape_text, new_closure, is_valid_name, \
-    is_options_expression, is_string
-from .html import prettify, escape
+from .utils import new_closure, is_valid_name, is_options_expression, is_string
+from .html import format_page, escape, tojson
 
 
 class Component(object):
@@ -144,7 +142,7 @@ class RenderEngine(object):
 
     def render_layout(self):
         html = self.root_template.render(layout=self.layout, title=self.title, **self.blocks)
-        return prettify(html)
+        return format_page(html)
 
     def set(self, name):
         def block_fn(*contents):
