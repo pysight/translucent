@@ -101,6 +101,14 @@ well:
             {% endcall %}
         </div>
 
+form:
+    container: true
+    args:
+    template: |
+        <form>
+            {{ contents }}
+        </form>
+
 select:
     container: false
     args:
@@ -114,6 +122,9 @@ select:
         - form:
             values: $bool
             default: true
+        - init:
+            values: $none | $expression
+            default: $none
     template: |
         <select
             {% if args.form %} 
@@ -121,6 +132,9 @@ select:
             {% endif %}
             {% if args.options is not sequence and args.options is not mapping %}
                 ng-options="{{ args.options }}"
+            {% endif %}
+            {% if args.init %}
+                ng-init="env.{{ args.id }} = {{ args.init|tojson }};"
             {% endif %}
             ng-model="env.{{ args.id }}"
         >
@@ -130,7 +144,7 @@ select:
             {% endfor %}
         {% elif args.options is sequence %}
             {% for k in args.options %}
-                <option>{{ k }}</option>
+                <option value="{{ k }}">{{ k }}</option>
             {% endfor %}
         {% endif %}
         </select>

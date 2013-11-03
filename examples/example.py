@@ -7,11 +7,12 @@ ui.set('top')(
     ui.header('Title', 'Subtitle')['Header text.']
 )
 ui.set('left')(
-    ui.panel('Nav List', style='env.style')[ui.navlist],
-    ui.select('style', ['success', 'info', 'warning', 'danger'])
+    ui.navlist,
+    ui.hr,
+    ui.select('style', ['default', 'success', 'info', 'warning', 'danger'], init='default')
 )
 ui.set('right')(
-    ui.panel('A panel', style='info')[
+    ui.panel('A panel', style='env.style')[
         ui.p[
             ui.list('unordered', nav='Menu Item #1')(
                 'item1', 'item2', 'item3', 'item4'),

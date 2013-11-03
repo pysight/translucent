@@ -28,3 +28,9 @@ p:
     container: true
     template: | 
         <p>{{ contents }}</p>
+
+hr:
+    container: false
+    args:
+    template: |
+        <hr>

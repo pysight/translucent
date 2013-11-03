@@ -2,11 +2,12 @@
 
 import jinja2
 import yaml
-import bs4
+# import bs4
 from collections import OrderedDict, Hashable, Callable
 
 from .utils import tojson, escape_text, new_closure, is_valid_name, \
     is_options_expression, is_string
+from .html import prettify, escape
 
 
 class Component(object):
@@ -143,7 +144,7 @@ class RenderEngine(object):
 
     def render_layout(self):
         html = self.root_template.render(layout=self.layout, title=self.title, **self.blocks)
-        return bs4.BeautifulSoup(html, 'html5lib').prettify('utf-8', escape_text)
+        return prettify(html)
 
     def set(self, name):
         def block_fn(*contents):
@@ -183,7 +184,7 @@ class RenderEngine(object):
             if isinstance(element, jinja2.Markup):
                 s = str(element)
             elif is_string(element):
-                s = element
+                s = escape(element)
             elif isinstance(element, Component):
                 s = str(element())
             elif isinstance(element, ComponentWrapper):

@@ -19,7 +19,7 @@
     {% set is_expr = expr[variable] %}
     {% if fmt is string %}
         {% if is_expr %}
-            <div ng-class="[({{ value }})|sprintf:'{{ fmt }}']">
+            <div ng-class="[(({{ value }})|sprintf:'{{ fmt }}')]">
                 {{ caller() }}
             </div>
         {% else %}
