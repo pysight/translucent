@@ -38,6 +38,14 @@ def attr_if(condition, attribute, value):
         return ' %s="%s"' % (attribute, value)
     return ''
 
+def class_if(condition, value):
+    if not is_string(attribute):
+        raise Exception('attribute name must be a string')
+    if not is_string(value):
+        raise Exception('attribute value must be a string')
+    if condition:
+        return ' %s="%s"' % (attribute, value)
+    return ''
 
 def escape(s):
     return unicode(jinja2.escape(s))

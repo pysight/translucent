@@ -3,22 +3,22 @@
 from translucent import Server, App, BootstrapUI
 
 ui = BootstrapUI('bootstrap-sidebar', 'My App')
-ui.set('top')(
-    ui.header('Title', 'Subtitle')['Header text.']
-)
-ui.set('left')(
-    ui.navlist,
-    ui.hr,
-    ui.select('style', ['default', 'success', 'info', 'warning', 'danger'], init='default')
-)
+
+ui.set('top')(ui.header('Translucent', 'UI Demo')[
+    'Lorem ipsum dolor sit amet, consectetur adipisicing.'])
+
+ui.set('left')(ui.navlist)
+
 ui.set('right')(
-    ui.panel('A panel', style='env.style')[
-        ui.p[
-            ui.list('unordered', nav='Menu Item #1')(
-                'item1', 'item2', 'item3', 'item4'),
-            ui.list('ordered', data='x in [1, 2, 3, 4]', nav='Menu Item #2')(
-                'item{{x}}')
-        ]
-    ]
+
+    ui.h4(nav='Panel')['Panel'],
+    ui.panel('Panel title', style='env.style')[
+        'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Perspiciatis, modi!'
+    ],
+    ui.panel[
+        ui.select('style', ['default', 'success', 'info', 'warning', 'danger'],
+            label='Style', init='default')
+    ],
 )
+
 Server(App(), ui, host='0.0.0.0', port=5000).run()

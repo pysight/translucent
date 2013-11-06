@@ -24,6 +24,32 @@ h1:
     template: | 
         <h1>{{ contents }}</h1>
 
+h2:
+    container: true
+    template: | 
+        <h2>{{ contents }}</h2>
+
+h3:
+    container: true
+    template: |
+        <h3>{{ contents }}</h3>
+
+h4:
+    container: true
+    template: | 
+        <h4>{{ contents }}</h4>
+
+h5:
+    container: true
+    template: | 
+        <h5>{{ contents }}</h5>
+
+h6:
+    container: true
+    template: | 
+        <h6>{{ contents }}</h6>
+
+
 p:
     container: true
     template: | 
