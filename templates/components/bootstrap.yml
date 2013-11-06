@@ -131,7 +131,7 @@ select:
             values: $bool
             default: true
         - init:
-            values: $none | $expression
+            values: $none | $text
             default: $none
     template: |
         <div class="form-group">
@@ -156,4 +156,27 @@ select:
                 {% endfor %}
             {% endif %}
             </select>
+        </div>
+
+checkbox:
+    container: false
+    args:
+        - id:
+            values: $id
+        - label:
+            values: $text
+        - init:
+            values: $none | $bool
+            default: ~
+    template: |
+        <div class="checkbox">
+            <label>
+                <input 
+                    type="checkbox" 
+                    ng-model="env.{{ args.id }}"
+                    {{ attr_if(args.init, 'ng-init', 
+                        'env.%s=%s;'|format(args.id, args.init|to_json)) }}
+                >
+                {{ args.label }}
+            </label>
         </div>
