@@ -55,17 +55,16 @@ class TranslucentTag(Tag):
         return '  '
 
     @property
-    def need_indent(self):
-        return not self.angular and self.name not in ['a', 'abbr', 'b', 'button',
-        'caption', 'cite', 'dt', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'i', 'li',
-        'option', 'q', 's', 'small', 'span', 'strong', 'td', 'u']
+    def needs_indent(self):
+        return not self.angular and self.name not in ['a', 'abbr', 'b', 'button', 'caption',
+        'cite', 'dt', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'i', 'label', 'li', 'option',
+        'q', 's', 'script', 'small', 'span', 'strong', 'td', 'title', 'u']
 
     @property
     def is_angular(self):
         return self.name == 'script' and self.attrs.get('type') == 'ng'
 
     def decode(self, indent_level=0, **kwargs):
-
         attrs = []
         if self.attrs:
             for key, val in sorted(self.attrs.items()):
@@ -94,7 +93,13 @@ class TranslucentTag(Tag):
         else:
             closeTag = '</%s%s>' % (prefix, self.name)
 
-        need_indent = self.need_indent
+        parent_flatten = kwargs.pop('flatten', False)
+        if not parent_flatten:
+            tag_needs_indent = lambda tag: isinstance(tag, Tag) and tag.needs_indent
+            indent_contents = len(self.find_all(tag_needs_indent)) > 0
+            flatten = not self.needs_indent and not indent_contents
+        else:
+            flatten = True
 
         pretty_print = self._should_pretty_print(indent_level)
         space = ''
@@ -106,7 +111,7 @@ class TranslucentTag(Tag):
             indent_contents = indent_level + 1
         else:
             indent_contents = None
-        contents = self.decode_contents(indent_contents, need_indent=need_indent)
+        contents = self.decode_contents(indent_contents, flatten=flatten)
 
         if self.hidden or self.is_angular:
             s = contents
@@ -115,26 +120,25 @@ class TranslucentTag(Tag):
             attribute_string = ''
             if attrs:
                 attribute_string = ' ' + ' '.join(attrs)
-            if indent_level is not None:
+            if indent_level is not None and not parent_flatten:
                 s.append(indent_space)
             s.append('<%s%s%s%s>' % (
                 prefix, self.name, attribute_string, close))
-            if pretty_print:
+            if pretty_print and not flatten:
                 s.append('\n')
             s.append(contents)
-            if pretty_print and contents and contents[-1] != '\n':
+            if pretty_print and contents and contents[-1] != '\n' and not flatten:
                 s.append('\n')
-            if pretty_print and closeTag:
+            if pretty_print and closeTag and not flatten:
                 s.append(space)
             s.append(closeTag)
-            if indent_level is not None and closeTag:
+            if indent_level is not None and closeTag and not parent_flatten:
                 s.append('\n')
             s = ''.join(s)
         return u'' + s
 
     def decode_contents(self, indent_level=0, **kwargs):
-
-        # need_indent = kwargs.pop('need_indent', False)
+        flatten = kwargs.pop('flatten', False)
         pretty_print = indent_level is not None
         s = []
         for c in self:
@@ -142,14 +146,14 @@ class TranslucentTag(Tag):
             if isinstance(c, NavigableString):
                 text = c.output_ready(angular_unescape)
             elif isinstance(c, TranslucentTag):
-                s.append(c.decode(indent_level))
+                s.append(c.decode(indent_level, flatten=flatten))
             if text and indent_level and not self.name == 'pre':
                 text = text.strip()
             if text:
-                if pretty_print and not self.name == 'pre':
+                if pretty_print and not self.name == 'pre' and not flatten:
                     s.append(self.indent * (indent_level - 1))
                 s.append(text)
-                if pretty_print and not self.name == 'pre':
+                if pretty_print and not self.name == 'pre' and not flatten:
                     s.append('\n')
         return ''.join(s)
 
