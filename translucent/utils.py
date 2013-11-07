@@ -24,6 +24,29 @@ def is_options_expression(s):
         r'in\s+(.*?)(?:\s+track\s+by\s+(.*?))?$', s))
 
 
+def to_json(obj, single=True, sep=(',', ':')):
+    c = "'" if single else '"'
+    quote = lambda s: c + s.replace(c, '\\' + c) + c
+    if obj is None:
+        return 'null'
+    elif obj is True:
+        return 'true'
+    elif obj is False:
+        return 'false'
+    elif is_string(obj):
+        return quote(obj)
+    elif is_number(obj):
+        return str(obj)
+    elif isinstance(obj, (tuple, list)):
+        return '[%s]' % sep[0].join([to_json(elem, single, sep) for elem in obj])
+    elif isinstance(obj, dict):
+        if bool(any(not is_string(key) for key in obj.iterkeys())):
+            raise Exception('non-string key in "%s"' % str(obj))
+        return '{%s}' % sep[0].join(['%s%s%s' %
+            (quote(k), sep[1], to_json(v, single, sep)) for k, v in obj.iteritems()])
+    raise Exception('cannot convert to json: "%s"' % str(obj))
+
+
 def new_closure(name, args, code, defaults=None, closure=None, kwargs=None, docstring=None):
     if not is_valid_name(name):
         raise Exception('invalid function name: "%s"' % name)

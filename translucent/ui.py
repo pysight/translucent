@@ -4,8 +4,8 @@ import jinja2
 import yaml
 from collections import OrderedDict, Hashable, Callable
 
-from .utils import new_closure, is_valid_name, is_options_expression, is_string
-from .html import format_page, escape, to_json, attr_if
+from .utils import new_closure, is_valid_name, is_options_expression, is_string, to_json
+from .html import format_page, escape, attr_if
 
 
 class Component(object):

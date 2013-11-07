@@ -1,6 +1,6 @@
 from nose.tools import assert_true, assert_false, assert_equals, assert_raises
 from translucent.utils import (
-    is_string, is_number, is_valid_name, is_options_expression, new_closure
+    is_string, is_number, is_valid_name, is_options_expression, new_closure, to_json
 )
 
 
@@ -66,3 +66,20 @@ def test_new_closure():
     assert_raises(IndentationError, new_closure, 'f', [], '')
     f2 = new_closure('f2', [], 'pass', docstring=None)
     assert_equals(f2.__doc__, None)
+
+
+def test_to_json():
+    assert_raises(Exception, to_json, object())
+    assert_equals(to_json(1), '1')
+    assert_equals(to_json('1'), "'1'")
+    assert_equals(to_json(None), 'null')
+    assert_equals(to_json("'1'"), "'\\'1\\''")
+    assert_equals(to_json(True), 'true')
+    assert_equals(to_json(False), 'false')
+    assert_equals(to_json((1, 2, '3')), "[1,2,'3']")
+    assert_raises(Exception, to_json, {1: 2})
+    assert_equals(to_json({'1': 2, '3': '4'}), "{'1':2,'3':'4'}")
+    assert_equals(to_json([1, '2', {'3': [4, {'5': 6}]}]), "[1,'2',{'3':[4,{'5':6}]}]")
+    assert_equals(to_json('1', single=False), '"1"')
+    assert_equals(to_json('"1"', single=False), '"\\"1\\""')
+    assert_equals(to_json({'1': [2, 3]}, sep=(', ', ': ')), "{'1': [2, 3]}")
