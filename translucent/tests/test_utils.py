@@ -33,13 +33,13 @@ def test_is_valid_name():
 
 def test_is_option_expression():
     valid_expressions = [
-        'label for value in array'
-        'select as label for value in array'
-        'label group by group for value in array'
-        'select as label group by group for value in array track by trackexpr'
-        'label for (key , value) in object'
-        'select as label for (key , value) in object'
-        'label group by group for (key, value) in object'
+        'label for value in array',
+        'select as label for value in array',
+        'label group by group for value in array',
+        'select as label group by group for value in array track by trackexpr',
+        'label for (key , value) in object',
+        'select as label for (key , value) in object',
+        'label group by group for (key, value) in object',
         'select as label group by group for (key, value) in object'
     ]
     for expression in valid_expressions:
