@@ -1,0 +1,11 @@
+[run]
+branch = True
+
+[report]
+exclude_lines =
+    pragma: no cover
+ignore_errors = True
+show_missing = True
+
+[html]
+directory = coverage_html_report

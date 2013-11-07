@@ -10,5 +10,5 @@ static/vendor/
 static/js/
 static/css/
 tmp/
-wip/
-.tmp/
+.coverage
+coverage_html_report

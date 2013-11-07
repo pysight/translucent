@@ -132,6 +132,7 @@ class RenderEngine(object):
         args = self.parse_args(component, kwargs)
         template = self.env.from_string(self.generate_imports() + component['template'])
         args.update(self.macros)
+
         def render_fn(*contents):
             if contents and not component.get('container', False):
                 raise Exception('component "%s" is not a container' % name)

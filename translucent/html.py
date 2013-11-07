@@ -38,14 +38,6 @@ def attr_if(condition, attribute, value):
         return ' %s="%s"' % (attribute, value)
     return ''
 
-def class_if(condition, value):
-    if not is_string(attribute):
-        raise Exception('attribute name must be a string')
-    if not is_string(value):
-        raise Exception('attribute value must be a string')
-    if condition:
-        return ' %s="%s"' % (attribute, value)
-    return ''
 
 def escape(s):
     return unicode(jinja2.escape(s))
@@ -147,7 +139,7 @@ class TranslucentTag(Tag):
             if indent_level is not None:
                 s.append(indent_space)
             s.append('<%s%s%s%s>' % (
-                    prefix, self.name, attribute_string, close))
+                prefix, self.name, attribute_string, close))
             if pretty_print:
                 s.append('\n')
             s.append(contents)
@@ -163,7 +155,7 @@ class TranslucentTag(Tag):
 
     def decode_contents(self, indent_level=0, **kwargs):
 
-        need_indent = kwargs.pop('need_indent', False)
+        # need_indent = kwargs.pop('need_indent', False)
         pretty_print = indent_level is not None
         s = []
         for c in self:
@@ -184,10 +176,12 @@ class TranslucentTag(Tag):
 
 bs4.Tag = TranslucentTag
 
+
 class TranslucentSoup(TranslucentTag, bs4.BeautifulSoup):
 
     def prettify(self, **kwargs):
         return super(TranslucentSoup, self).decode().encode('utf-8', 'xmlcharrefreplace')
+
 
 def format_page(html):
     return TranslucentSoup(html).prettify()

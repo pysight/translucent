@@ -8,6 +8,7 @@ import re
 def is_string(x):
     return isinstance(x, basestring)
 
+
 def is_number(x):
     return isinstance(x, (int, long, float))
 
@@ -39,7 +40,7 @@ def new_closure(name, args, code, defaults=None, closure=None, kwargs=None, docs
     if defaults_locations != expected_locations:
         raise Exception('default values not allowed before positional arguments')
     args = ', '.join([arg if arg not in defaults else '%s=%s' % (arg,
-        repr(defaults[arg])) for arg in args] + ['**' + kwargs] if kwargs else [])
+        repr(defaults[arg])) for arg in args] + (['**' + kwargs] if kwargs else []))
     closure = closure or {}
     code = '\n'.join(['\t\t' + line for line in textwrap.dedent(code).split('\n')])
     code = 'def _({closure}):\n\tdef {name}({args}):\n{code}\n\treturn {name}'.format(

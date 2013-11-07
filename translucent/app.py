@@ -13,6 +13,7 @@ from socketio.namespace import BaseNamespace
 
 from .debugger import SocketIODebugger
 
+
 class App(object):
 
     def __init__(self):
@@ -50,7 +51,7 @@ class Server(object):
         self.host, self.port = host, port
         package_folder = os.path.dirname(os.path.abspath(__file__))
         template_folder = os.path.join(package_folder, '..', 'templates')
-        static_folder = os.path.join(package_folder, '..' ,'static')
+        static_folder = os.path.join(package_folder, '..', 'static')
         self.flask_app = Flask(__name__,
             template_folder=template_folder,
             static_folder=static_folder)

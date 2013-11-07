@@ -108,7 +108,7 @@ form:
             values: default | inline | horizontal
             default: default
     template: |
-        <form>
+        <form role="form">
             {% call macros.class_fmt('style', 'form-%s', args.style != 'default') %}
                 {{ contents }}
             {% endcall %}
