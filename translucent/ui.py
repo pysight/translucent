@@ -8,6 +8,27 @@ from .utils import new_closure, is_valid_name, is_options_expression, is_string,
 from .html import format_page, escape, attr_if, class_fmt
 
 
+def merge(*contents):
+    if not contents:
+        return ''
+    rendered_contents = []
+    for element in contents:
+        if isinstance(element, jinja2.Markup):
+            s = str(element)
+        elif isinstance(element, list):
+            s = merge(*element)
+        elif is_string(element):
+            s = escape(element)
+        elif isinstance(element, Component):
+            s = str(element())
+        elif isinstance(element, ComponentWrapper):
+            s = str(element()())
+        else:
+            raise Exception('cannot render element: %s' % repr(element))
+        rendered_contents.append(str(s).strip())
+    return jinja2.Markup(' '.join(rendered_contents))
+
+
 class Component(object):
 
     def __init__(self, fn, docstring=None):
@@ -101,9 +122,10 @@ class RenderEngine(object):
         self.value_types[name] = {'fn': fn, 'docstring': docstring}
 
     def register_default_value_types(self):
+        is_text_type = lambda v: isinstance(v, (list, basestring))
         self.register_value_type('$bool', bool, 'bool')
         self.register_value_type('$none', None, 'None')
-        self.register_value_type('$text', is_string, 'text')
+        self.register_value_type('$text', is_text_type, 'text')
         self.register_value_type('$list', list, 'list')
         self.register_value_type('$dict', dict, 'dict')
         self.register_value_type('$options', is_options_expression, 'options')
@@ -174,23 +196,11 @@ class RenderEngine(object):
                 if not is_string(value):
                     raise Exception('%s: expected expresssion, got %s' % (arg, repr(value)))
                 expr[arg] = True
+            elif '$text' in options and isinstance(value, list):
+                if '$list' not in options or options.index('$list') > options.index('$text'):
+                    kwargs[arg] = self.merge(*kwargs[arg])
         return {'args': kwargs.copy(), 'expr': expr}
 
     @staticmethod
     def merge(*contents):
-        if not contents:
-            return ''
-        rendered_contents = []
-        for element in contents:
-            if isinstance(element, jinja2.Markup):
-                s = str(element)
-            elif is_string(element):
-                s = escape(element)
-            elif isinstance(element, Component):
-                s = str(element())
-            elif isinstance(element, ComponentWrapper):
-                s = str(element()())
-            else:
-                raise Exception('cannot render element: %s' % repr(element))
-            rendered_contents.append(str(s).strip())
-        return jinja2.Markup(' '.join(rendered_contents))
+        return merge(*contents)
