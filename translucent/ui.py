@@ -4,29 +4,9 @@ import jinja2
 import yaml
 from collections import OrderedDict, Hashable, Callable
 
-from .utils import new_closure, is_valid_name, is_options_expression, is_string, to_json
+from .utils import (
+    new_closure, is_valid_name, is_options_expression, is_string, to_json, is_number)
 from .html import format_page, escape, attr_if, class_fmt
-
-
-def merge(*contents):
-    if not contents:
-        return ''
-    rendered_contents = []
-    for element in contents:
-        if isinstance(element, jinja2.Markup):
-            s = str(element)
-        elif isinstance(element, list):
-            s = merge(*element)
-        elif is_string(element):
-            s = escape(element)
-        elif isinstance(element, Component):
-            s = str(element())
-        elif isinstance(element, ComponentWrapper):
-            s = str(element()())
-        else:
-            raise Exception('cannot render element: %s' % repr(element))
-        rendered_contents.append(str(s).strip())
-    return jinja2.Markup(' '.join(rendered_contents))
 
 
 class Component(object):
@@ -56,6 +36,32 @@ class ComponentWrapper(object):
         return self.fn(*args, **kwargs)
 
 
+def merge(*contents):
+    if not contents:
+        return ''
+    rendered_contents = []
+    for element in contents:
+        if isinstance(element, jinja2.Markup):
+            s = str(element)
+        elif isinstance(element, list):
+            s = merge(*element)
+        elif is_string(element):
+            s = escape(element)
+        elif isinstance(element, Component):
+            s = str(element())
+        elif isinstance(element, ComponentWrapper):
+            s = str(element()())
+        else:
+            raise Exception('cannot render element: %s' % repr(element))
+        rendered_contents.append(str(s).strip())
+    return jinja2.Markup(' '.join(rendered_contents))
+
+
+@jinja2.contextfunction
+def debug(context, *args):
+    print ' '.join(map(str, args))
+
+
 class RenderEngine(object):
 
     def __init__(self, layout=None, title=''):
@@ -76,6 +82,7 @@ class RenderEngine(object):
         self.register_filter('to_json', to_json)
         self.register_function('attr_if', attr_if)
         self.register_function('class_fmt', class_fmt)
+        self.register_function('debug', debug)
         self.register_macros('macros', self.load_source('macros.html'))
         self.register_default_value_types()
 
@@ -126,6 +133,8 @@ class RenderEngine(object):
         self.register_value_type('$bool', bool, 'bool')
         self.register_value_type('$none', None, 'None')
         self.register_value_type('$text', is_text_type, 'text')
+        self.register_value_type('$string', is_string, 'string')
+        self.register_value_type('$number', is_number, 'number')
         self.register_value_type('$list', list, 'list')
         self.register_value_type('$dict', dict, 'dict')
         self.register_value_type('$options', is_options_expression, 'options')

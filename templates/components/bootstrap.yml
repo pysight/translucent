@@ -126,36 +126,37 @@ select:
             values: $text | $none
             default: ~
         - placeholder:
-            values: $bool
-            default: false
+            values: $text | $none
+            default: ~
         - form:
             values: $bool
             default: true
         - init:
-            values: $none | $text
+            values: $none | $string | $number
             default: $none
     template: |
         <div class="form-group">
             {% if args.label %}
                 <label for="{{ args.id }}">{{ args.label }}</label>
             {% endif %}
-            <select ng-model="env.{{ args.id }}"
+            {% set ng = args.options is not sequence and args.options is not mapping %}
+            {% set init_value = '' if args.init is none else "env.%s=%s;"|format(
+                args.id, args.init|to_json) %}
+            {% set init_options = '' if ng else "options_%s=%s;"|format(
+                args.id, args.options|to_json) %}
+            {% set init = init_value + init_options %}
+            {% set options = args.options if ng else ('o for o in options_' + args.id if
+                args.options is sequence else 'k as v for (k, v) in options_' + args.id) %}
+            <select
                 id="{{ args.id }}"
                 {{ attr_if(args.form, 'class', 'form-control') }} 
-                {{ attr_if(args.init, 'ng-init', 
-                    'env.%s=%s;'|format(args.id, args.init|to_json)) }}
-                {{ attr_if(args.options is not sequence and args.options is not mapping,
-                    'ng-options', '"%s"'|format(args.options)) }}
+                ng-model="env.{{ args.id }}"
+                ng-options="{{ options }}"
+                {{ attr_if(init, 'ng-init', init) }}
             >
-            {% if args.options is mapping %}
-                {% for k, v in args.options.iteritems() %}
-                    <option value="{{ k }}">{{ v }}</option>
-                {% endfor %}
-            {% elif args.options is sequence %}
-                {% for k in args.options %}
-                    <option value="{{ k }}">{{ k }}</option>
-                {% endfor %}
-            {% endif %}
+                {% if placeholder is not none %}
+                    <option value=''>{{ placeholder }}</option>
+                {% endif %}
             </select>
         </div>
 
