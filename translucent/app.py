@@ -10,6 +10,7 @@ from flask import Flask, Response, request
 from socketio import socketio_manage
 from socketio.server import SocketIOServer
 from socketio.namespace import BaseNamespace
+from werkzeug.serving import run_with_reloader
 
 from .debugger import SocketIODebugger
 
@@ -68,7 +69,10 @@ class Server(object):
                     evalex=True, namespace=SocketIONamespace)
             server = SocketIOServer((self.host, self.port), self.flask_app,
                 resource='socket.io', policy_server=False)
-            server.serve_forever()
+            if self.debug:
+                run_with_reloader(lambda: server.serve_forever())
+            else:
+                server.serve_forever()
         except KeyboardInterrupt:
             print '\rShutting down...'
 
