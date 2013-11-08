@@ -5,7 +5,7 @@ from bs4.element import (Tag, NavigableString,
     EntitySubstitution, AttributeValueWithCharsetSubstitution)
 import jinja2
 
-from .utils import is_string
+from .utils import is_string, to_json
 
 
 def attr_if(condition, attribute, value):
@@ -16,6 +16,54 @@ def attr_if(condition, attribute, value):
     if condition:
         return ' %s="%s"' % (attribute, value)
     return ''
+
+
+@jinja2.contextfunction
+def class_fmt(context, default, **kwargs):
+    if len(kwargs) is 0:
+        return '' if not default else 'class="%s"' % default
+    is_expr = context['expr']
+    args = context['args']
+    any_expr = any(is_expr.values())
+    parse_string = lambda fmt, v: fmt % v
+    parse_dict = lambda fmt, v: fmt[v] if v in fmt else fmt['?']
+    if any_expr:
+        if len(kwargs) is 1:
+            arg, fmt = kwargs.items()[0]
+            if isinstance(fmt, dict):
+                return 'ng-class="%s|map:%s"' % (args[arg], to_json(fmt))
+        class_list = [default] if default else []
+        var_list = []
+        for arg, fmt in kwargs.iteritems():
+            v = args[arg]
+            if is_expr[arg]:
+                if is_string(fmt):
+                    class_list.append(fmt)
+                    var_list.append(v)
+                elif isinstance(fmt, dict):
+                    class_list.append(r'%s')
+                    var_list.append(r'(%s|map:%s)' % (v, to_json(fmt)))
+            else:
+                if is_string(fmt):
+                    s = parse_string(fmt, v)
+                    class_list.extend([s] if s else [])
+                elif isinstance(fmt, dict):
+                    s = parse_dict(fmt, v)
+                    class_list.extend([s] if s else [])
+            fmt_string = ' '.join(class_list)
+            var_string = ':'.join(var_list)
+        return 'ng-class="\'%s\'|sprintf:%s"' % (fmt_string, var_string)
+    else:
+        class_list = [default] if default else []
+        for arg, fmt in kwargs.iteritems():
+            v = args[arg]
+            if is_string(fmt):
+                s = parse_string(fmt, v)
+                class_list.extend([s] if s else [])
+            elif isinstance(fmt, dict):
+                s = parse_dict(fmt, v)
+                class_list.extend([s] if s else [])
+        return 'class="%s"' % ' '.join(class_list)
 
 
 def escape(s):

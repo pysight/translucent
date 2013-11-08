@@ -25,6 +25,7 @@
 		"angular": "~1.0.8",
 		"socket.io-client": "~0.9.16",
 		"chosen": "https://github.com/harvesthq/chosen/releases/download/1.0.0/chosen_v1.0.0.zip",
-		"chosen-bootstrap": "git@github.com:alxlit/bootstrap-chosen.git"
+		"chosen-bootstrap": "git@github.com:alxlit/bootstrap-chosen.git",
+		"font-awesome": "~4.0.3"
 	}
 }

@@ -5,7 +5,7 @@ import yaml
 from collections import OrderedDict, Hashable, Callable
 
 from .utils import new_closure, is_valid_name, is_options_expression, is_string, to_json
-from .html import format_page, escape, attr_if
+from .html import format_page, escape, attr_if, class_fmt
 
 
 class Component(object):
@@ -54,6 +54,7 @@ class RenderEngine(object):
         self.register_components('components/default.yml')
         self.register_filter('to_json', to_json)
         self.register_function('attr_if', attr_if)
+        self.register_function('class_fmt', class_fmt)
         self.register_macros('macros', self.load_source('macros.html'))
         self.register_default_value_types()
 
@@ -124,10 +125,10 @@ class RenderEngine(object):
                 docstring=docstring, kwargs='kwargs', closure={'self': self}))
             setattr(self, name, wrapper)
 
-    def render_component(self, name, **kwargs):
-        if name not in self.components:
-            raise Exception('unknown component: "%s"' % name)
-        component = self.components[name]
+    def render_component(self, _component_name, **kwargs):
+        if _component_name not in self.components:
+            raise Exception('unknown component: "%s"' % _component_name)
+        component = self.components[_component_name]
         nav = kwargs.pop('nav', None)
         args = self.parse_args(component, kwargs)
         template = self.env.from_string(self.generate_imports() + component['template'])
@@ -135,7 +136,7 @@ class RenderEngine(object):
 
         def render_fn(*contents):
             if contents and not component.get('container', False):
-                raise Exception('component "%s" is not a container' % name)
+                raise Exception('component "%s" is not a container' % _component_name)
             args['contents'] = self.merge(*contents)
             args['raw_contents'] = map(lambda c: self.merge(c), contents)
             html = jinja2.Markup(template.render(**args))

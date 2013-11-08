@@ -23,6 +23,12 @@ module.exports = (grunt) ->
 						cwd: 'bower_components/chosen', 
 						src: '*.png', 
 						dest: 'static/vendor/'
+					},
+					{
+						expand: true,
+						cwd: 'bower_components/font-awesome/fonts',
+						src: '*.*',
+						dest: 'static/fonts'
 					}
 				]
 		browserify:

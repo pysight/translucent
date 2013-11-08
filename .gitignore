@@ -9,6 +9,8 @@ bower_components/
 static/vendor/
 static/js/
 static/css/
+static/fonts/
 tmp/
+.tmp/
 .coverage
 coverage_html_report

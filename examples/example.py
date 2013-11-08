@@ -11,7 +11,7 @@ ui.set('left')(ui.navlist)
 
 ui.set('right')(
 
-    ui.h4(nav='Panel')['Panel'],
+    ui.h4(nav='Panel')[ui.icon('fa-spinner', spin=True, fixed=True), 'Panel'],
     ui.panel('Panel title', style='env.style', title='env.title')[
         'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Perspiciatis, modi!'
     ],

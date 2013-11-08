@@ -14,34 +14,12 @@
     {% endif %}
 {% endmacro %}
 
-{% macro class_fmt(variable, fmt, condition=True, default='') %}
+{% macro div_class_fmt(condition, default) %}
     {% if not condition %}
         {{ caller() }}
     {% else %}
-        {% set value = args[variable] %}
-        {% set is_expr = expr[variable] %}
-        {% set default = default + ' ' if default else default %}
-        {% if fmt is string %}
-            {% if is_expr %}
-                <div ng-class="(({{ value }})|sprintf:'{{ default }}{{ fmt }}')">
-                    {{ caller () }}
-                </div>
-            {% else %}
-                <div class="{{ default }}{{ fmt % value }}">
-                    {{ caller() }}
-                </div>
-            {% endif %}
-        {% elif fmt is mapping %}
-            {% if is_expr %}
-                {% set default =  "'%s ' + "|format(default) if default else '' %}
-                <div ng-class="{{ default }}(({{ value }}|map:'{{ fmt }}')">
-                    {{ caller() }}
-                </div>
-            {% else %}
-                <div class="{{ default }}{{ fmt[value] if value in fmt else fmt['?'] }}">
-                    {{ caller() }}
-                </div>
-            {% endif %}
-        {% endif %}
+        <div {{ class_fmt(default, **kwargs) }}>
+            {{ caller() }}
+        </div>
     {% endif %}
 {% endmacro %}

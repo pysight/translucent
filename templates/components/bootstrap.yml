@@ -69,7 +69,7 @@ panel:
             values: default | primary | $context | $expression
             default: default
     template: |
-        {%- call macros.class_fmt('style', 'panel-%s', default='panel') %}
+        {% call macros.div_class_fmt(True, 'panel', style='panel-%s') %}
             {%- if args.header %}
                 <div class="panel-heading">
                     {% call macros.class_if('title', 'panel-title') %}
@@ -85,7 +85,7 @@ panel:
                     {{ args.footer }}
                 </div>
             {% endif -%}
-        {% endcall -%} 
+        {% endcall %} 
 
 well:
     container:  true
@@ -94,12 +94,10 @@ well:
             values: default | small | large | $expression
             default: default
     template: |
-        <div class="well">
-            {% call macros.class_fmt('size', {'small': 'well-sm', 'large': 'well-lg', 
-                    'default': 'well-default', '?': 'well-default'}) %}
-                {{ contents }}
-            {% endcall %}
-        </div>
+        {% call macros.div_class_fmt(True, 'well', size={'small': 'well-sm', 
+            'large': 'well-lg', 'default': 'well-default', '?': 'well-default'}) %}
+            {{ contents }}
+        {% endcall %}
 
 form:
     container: true
@@ -109,7 +107,7 @@ form:
             default: default
     template: |
         <form role="form">
-            {% call macros.class_fmt('style', 'form-%s', args.style != 'default') %}
+            {% call macros.div_class_fmt(args.style != 'default', None, style='form-%s') %}
                 {{ contents }}
             {% endcall %}
         </form>
@@ -180,3 +178,23 @@ checkbox:
                 {{ args.label }}
             </label>
         </div>
+
+icon:
+    container: false
+    args:
+        - name:
+            values: $icon | $expression
+        - size:
+            values: default | large | 2x | 3x | 4x | 5x | $expression
+            default: default
+        - fixed:
+            values: $bool | $expression
+            default: false
+        - spin:
+            values: $bool | $expression
+            default: false
+    template: |
+        <i {{ class_fmt('fa', name='%s', size={'default': '', 'large': 'fa-lg',
+            '2x': 'fa-2x', '3x': 'fa-3x', '4x': 'fa-4x', '5x': 'fa-5x'},
+            fixed={True: 'fa-fw', False: ''}, spin={True: 'fa-spin', False: ''}) }}>
+        </i>
