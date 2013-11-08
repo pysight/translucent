@@ -154,8 +154,8 @@ select:
                 ng-options="{{ options }}"
                 {{ attr_if(init, 'ng-init', init) }}
             >
-                {% if placeholder is not none %}
-                    <option value=''>{{ placeholder }}</option>
+                {% if args.placeholder is not none %}
+                    <option value="">{{ args.placeholder }}</option>
                 {% endif %}
             </select>
         </div>
