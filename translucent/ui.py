@@ -96,7 +96,7 @@ class RenderEngine(object):
         if is_string(components):
             components = yaml.load(self.load_source(components))
         for name, component in components.iteritems():
-            if not is_valid_name(name):
+            if not is_valid_name(name) or name[0] == '_':
                 raise Exception('invalid component name: "%s"' % name)
             if 'template' not in component:
                 raise Exception('template missing for component "%s"' % name)
