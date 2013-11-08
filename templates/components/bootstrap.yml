@@ -37,7 +37,7 @@ navlist:
         <ul class="nav nav-stacked">
             <li ng-repeat="nav_item in nav_items">
                 <a href="#{{ nav_item.id }}">
-                    {{ nav_item.text }}
+                    <span ng-bind-html-unsafe="nav_item.text"></span>
                 </a>
             </li>
         </ul>
@@ -49,9 +49,12 @@ nav:
         - text: 
             values: $text
     template: |
-        <div tr-nav="{{ args.text }}">
+        <tr-nav>
+            <div class="tr-nav-text">
+                {{ args.text }}
+            </div>
             {{ contents }}
-        </div>
+        </tr-nav>
 
 panel:
     container:  true
