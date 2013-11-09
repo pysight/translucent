@@ -16,98 +16,81 @@ from werkzeug.serving import run_with_reloader
 from .debugger import SocketIODebugger
 from .reactive import *
 
-"""
-
-ReactiveValue: inputs from AngularJS
-
-    if modified on client side, get sent from client via sockets
-
-    if modified on server side, get sent to client first and then see what happens
-
-1.  App.on_init() is called
-
-    can modify any reactive values
-
-2.  recv_connect() on server side and on_connect() on client side happen
-
-    the server has to send reactive values first, then retrieve the environment
-
-
-"""
-
 
 class App(object):
 
-    def __init__(self):
-        SocketIONamespace._on_env_init.connect(self.on_env_init)
-        SocketIONamespace._on_value_change.connect(self.on_value_change)
-        SocketIONamespace._on_connect.connect(self.on_connect)
+    def __init__(self, namespace):
+        self.namespace = namespace
         self.context = ReactiveContext()
-
-    def on_env_init(self, sender, **kwargs):
-        env = kwargs['env']
-        print 'app:', env
-
-    def on_value_change(self, sender, **kwargs):
-        key, value = kwargs['key'], kwargs['value']
-        print 'app:', key, value
-
-    def set(self, name, value):
-        if name not in self.context:
-            self.context.value(name)
-        self.context[name] = value
-
-    def on_connect(self, sender):
-        for key, obj in self.context.env._objects.iteritems():
-            value = obj.get_value()
-            print key, value
-            self.send_value(key, value)
-
-    def send_value(self, key, value):
-        SocketIONamespace._on_send_value.send(self, key=key, value=value)
 
     def on_init(self):
         pass
 
+    @classmethod
+    def on_start(cls):
+        pass
+
+    def on_connect(self):
+        print 'App.on_connect'
+
+    def on_inputs_init(self, env):
+        print 'app:', env
+
+    def on_input_update(self, key, value):
+        print 'input_update:', key, value
+
+    def set_input(self, key, value):
+        self.send_value(key, value, readonly=False)
+
+    def set_value(self, key, value, shared=False):
+        if key not in self.context:
+            self.context.value(key)
+        self.context[key] = value
+        if shared:
+            self.send_value(key, value, readonly=True)
+
+    def new_expression(self, key, fn, shared=False):
+        raise NotImplemented
+
+    def send_value(self, key, value, readonly=False):
+        self.namespace.send_value(key, value, readonly)
+
 
 class SocketIONamespace(BaseNamespace):
 
-    _on_env_init = Signal()
-    _on_value_change = Signal()
-    _on_connect = Signal()
-    _on_send_value = Signal()
-
     def __init__(self, *args, **kwargs):
         super(SocketIONamespace, self).__init__(*args, **kwargs)
-        self._on_send_value.connect(self.send_value)
+        self.app = self.app_class(self)
+        self.app.on_init()
 
-    def send_value(self, sender, **kwargs):
-        self.emit('send_value', {'key': kwargs['key'], 'value': kwargs['value']})
+    def send_value(self, key, value, readonly=False):
+        self.emit('value_update', {'key': key, 'value': value, 'readonly': readonly})
 
-    def on_value_change(self, data):
-        self._on_value_change.send(self, key=data['key'], value=data['value'])
+    def on_input_update(self, data):
+        self.app.on_input_update(data['key'], data['value'])
 
-    def on_env_init(self, env):
-        self._on_env_init.send(self, env=env)
+    def on_inputs_init(self, env):
+        self.app.on_inputs_init(env)
 
     def recv_connect(self):
-        print 'got connection'
-        self.emit('hello')
-        self._on_connect.send(self)
+        self.app.on_connect()
 
     def recv_disconnect(self):
         self.disconnect(silent=True)
 
+    @classmethod
+    def set_app_class(cls, app_class):
+        cls.app_class = app_class
+
 
 class Server(object):
 
-    def __init__(self, app, ui, host='127.0.0.1', port=5000, debug=True):
-        if isinstance(app, App):
-            self.app = app
-            print 'Initializing the app...'
-            app.on_init()
-        else:
-            raise Exception('app must be an instance of App')
+    def __init__(self, app_class, ui, host='127.0.0.1', port=5000, debug=True):
+        if not issubclass(app_class, App):
+            raise Exception('app_class must be a subclass of App')
+        self.app_class = app_class
+        print 'Initializing the app...'
+        self.app_class.on_start()
         self.host, self.port = host, port
         package_folder = os.path.dirname(os.path.abspath(__file__))
         template_folder = os.path.join(package_folder, '..', 'templates')
@@ -124,6 +107,7 @@ class Server(object):
     def run(self):
         try:
             print 'Listening at %s port %d...' % (self.host, self.port)
+            SocketIONamespace.set_app_class(self.app_class)
             if self.debug:
                 self.flask_app = SocketIODebugger(self.flask_app,
                     evalex=True, namespace=SocketIONamespace)

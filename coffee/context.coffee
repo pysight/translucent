@@ -1,12 +1,40 @@
 class Context
 
-	constructor: (@$timeout, @socket) -> 
+	constructor: (@$timeout, @$rootScope, @$log, @socket) -> 
 		@env = {}
+		@readonly = {}
+		@socket.on "value_update", @on_value_update
+		@socket.on "connect", @on_connect
 
-	update: (key) ->
-		console.log 'context.update:', key, '->', @env[key]
-		@socket.emit "value_change",
-			key: key
-			value: @env[key]
+	update: (key) =>
+		@$log.log 'context.update():', key, '->', @env[key]
+		if not @readonly[key]
+			@$log.log "\tsocket.emit('input_update'):", key, '->', @env[key]
+			@socket.emit "input_update",
+				key: key
+				value: @env[key]
 
-angular.module("app").service "context", ["$timeout", "socket", Context]
+	env_watcher: (e1, e2) =>
+		_.each _.union(_.keys(e1), _.keys(e2)), (key) =>
+			if not _.isEqual e1[key], e2[key]
+				@$timeout (=> @update key), 0
+
+	on_value_update: (data) =>
+		@$log.log "context.on_value_update(): ", angular.toJson(data)
+		@readonly[data.key] = data.readonly
+		@$rootScope.$apply =>
+			@env[data.key] = data.value
+		console.log @env
+
+	on_connect: =>
+		@$log.log "context.on_connect()"
+		env = {}
+		for k, v of @env
+			if not @readonly[k]?
+				env[k] = v
+		@$log.log "\tsocket.emit('inputs_init'):", angular.toJson(env)
+		@socket.emit "inputs_init", env
+
+
+angular.module("app").service "context", 
+	["$timeout", "$rootScope", "$log", "socket", Context]

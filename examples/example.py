@@ -34,12 +34,16 @@ ui.set('right')(
 
 class ExampleApp(App):
 
-    def on_init(self):
-        self.set('cities', [
+    @classmethod
+    def on_start(cls):
+        cls.cities = [
             {'id': 0, 'name': 'Moscow'},
             {'id': 1, 'name': 'New York'},
             {'id': 2, 'name': 'London'}
-        ])
-        self.set('city', 1)
+        ]
 
-Server(ExampleApp(), ui, host='0.0.0.0', port=5000).run()
+    def on_init(self):
+        self.set_value('cities', self.cities, shared=True)
+        self.set_input('city', 2)
+
+Server(ExampleApp, ui, host='0.0.0.0', port=5000).run()

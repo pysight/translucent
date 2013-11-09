@@ -1,6 +1,6 @@
 {
 	"name": "translucent",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"authors": 
 	[
 		"Ivan Smirnov <i.s.smirnov@gmail.com>"
@@ -20,9 +20,9 @@
 	{
 		"underscore": "~1.5.2",
 		"underscore.string": "~2.3.3",
-		"bootstrap": "~3.0.0",
+		"bootstrap": "~3.0.2",
 		"jquery": "~2.0.3",
-		"angular": "~1.0.8",
+		"angular": "~1.2.0",
 		"socket.io-client": "~0.9.16",
 		"chosen": "https://github.com/harvesthq/chosen/releases/download/1.0.0/chosen_v1.0.0.zip",
 		"chosen-bootstrap": "git@github.com:alxlit/bootstrap-chosen.git",
