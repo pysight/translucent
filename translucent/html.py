@@ -7,6 +7,7 @@ import jinja2
 
 from .utils import is_string, to_json
 
+
 def attr_if(condition, attribute, value):
     if not condition:
         return u''
@@ -107,10 +108,6 @@ class TranslucentTag(Tag):
         'cite', 'dt', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'i', 'label', 'li', 'option',
         'q', 's', 'script', 'small', 'span', 'strong', 'td', 'title', 'u']
 
-    @property
-    def is_angular(self):
-        return self.name == 'script' and self.attrs.get('type') == 'ng'
-
     def decode(self, indent_level=0, **kwargs):
         attrs = []
         if self.attrs:
@@ -160,7 +157,7 @@ class TranslucentTag(Tag):
             indent_contents = None
         contents = self.decode_contents(indent_contents, flatten=flatten)
 
-        if self.hidden or self.is_angular:
+        if self.hidden:
             s = contents
         else:
             s = []

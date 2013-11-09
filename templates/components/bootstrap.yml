@@ -132,14 +132,14 @@ select:
             values: $bool
             default: true
         - init:
-            values: $none | $string | $number
-            default: $none
+            values: $string | $number | $none
+            default: ~
     template: |
         <div class="form-group">
             {% if args.label %}
                 <label for="{{ args.id }}">{{ args.label }}</label>
             {% endif %}
-            {% set ng = args.options is not sequence and args.options is not mapping %}
+            {% set ng = args.options is string %}
             {% set init_value = '' if args.init is none else "env.%s=%s;"|format(
                 args.id, args.init|to_json) %}
             {% set init_options = '' if ng else "options_%s=%s;"|format(
