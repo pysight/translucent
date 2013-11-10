@@ -37,7 +37,7 @@ navlist:
         <ul class="nav nav-stacked">
             <li ng-repeat="nav_item in nav_items">
                 <a href="#{{ nav_item.id }}">
-                    <span ng-bind-html-unsafe="nav_item.text"></span>
+                    <span ng-bind-html="nav_item.text|unsafe"></span>
                 </a>
             </li>
         </ul>

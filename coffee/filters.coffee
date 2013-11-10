@@ -1,5 +1,10 @@
-angular.module("app").filter "sprintf", ->
+app = angular.module "app"
+
+app.filter "sprintf", ->
 	(format, args...) -> _.str.sprintf format, args...
 
-angular.module("app").filter "map", ->
+app.filter "map", ->
 	(value, mapping) -> mapping[value] ? mapping['?']
+
+app.filter "unsafe", ($sce) ->
+	(value) -> $sce.trustAsHtml value

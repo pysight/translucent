@@ -14,16 +14,17 @@ spinner = ui.icon('fa-spinner', spin=True, fixed=True)
 ui.set('right')(
     ui.h4(nav=[spinner, 'Panel'])[spinner, 'Panel'],
     ui.panel('Reactive Test', style='primary')[
-        ui.select('city', "city['id'] as city['name'] for city in env.cities"),
-        ui.p['Selected city: {{ env.city }}']
+        ui.select('object', "obj.id as obj.name for obj in env.objects",
+            label='Select an object:'),
+        ui.p['Selected object: {{ env.object }}']
     ],
     ui.panel('Panel (style: {{ env.style }})', style='env.style', title='env.title')[
-        'Lorem ipsum dolor sit amet, consectetur adipisicing elit. Perspiciatis, modi!'
-    ],
-    ui.panel[
-        ui.select('style', ['default', 'primary', 'success', 'info', 'warning', 'danger'],
-            label='Choose heading style', init='primary'),
-        ui.checkbox('title', 'Large title', init=False)
+        ui.p['Lorem ipsum dolor sit amet, consectetur adipisicing elit. Perspiciatis, modi!'],
+        ui.panel[
+            ui.select('style', ['default', 'primary', 'success', 'info', 'warning', 'danger'],
+                label='Choose heading style', init='primary'),
+            ui.checkbox('title', 'Large title', init=False)
+        ]
     ],
     ui.panel('Select values are not passed as strings!', style='primary')[
         ui.select('a', [1, 2, 3], label='a', init=1),
@@ -36,14 +37,14 @@ class ExampleApp(App):
 
     @classmethod
     def on_start(cls):
-        cls.cities = [
-            {'id': 0, 'name': 'Moscow'},
-            {'id': 1, 'name': 'New York'},
-            {'id': 2, 'name': 'London'}
+        cls.objects = [
+            {'id': 0, 'name': 'Foo'},
+            {'id': 1, 'name': 'Bar'},
+            {'id': 2, 'name': 'Baz'}
         ]
 
     def on_init(self):
-        self.set_value('cities', self.cities, shared=True)
-        self.set_input('city', 2)
+        self.set_value('objects', self.objects, shared=True)
+        self.set_input('object', 0)
 
 Server(ExampleApp, ui, host='0.0.0.0', port=5000).run()

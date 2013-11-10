@@ -1,3 +1,5 @@
+app = angular.module "app"
+
 class Context
 
 	constructor: (@$timeout, @$rootScope, @$log, @socket) -> 
@@ -24,7 +26,6 @@ class Context
 		@readonly[data.key] = data.readonly
 		@$rootScope.$apply =>
 			@env[data.key] = data.value
-		console.log @env
 
 	on_connect: =>
 		@$log.log "context.on_connect()"
@@ -36,5 +37,4 @@ class Context
 		@socket.emit "inputs_init", env
 
 
-angular.module("app").service "context", 
-	["$timeout", "$rootScope", "$log", "socket", Context]
+app.service "context", ["$timeout", "$rootScope", "$log", "socket", Context]

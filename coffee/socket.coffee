@@ -1,3 +1,5 @@
+app = angular.module "app"
+
 class Socket
 
 	constructor: (@$rootScope, @$timeout) ->
@@ -29,4 +31,4 @@ class Socket
 			scope.$on "destroy", -> @socket.removeListener e, f
 			@socket.on e, f
 
-angular.module("app").service "socket", ["$rootScope", "$timeout", Socket]
+app.service "socket", ["$rootScope", "$timeout", Socket]

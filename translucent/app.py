@@ -31,13 +31,13 @@ class App(object):
         pass
 
     def on_connect(self):
-        print 'App.on_connect'
+        print 'on_connect()'
 
     def on_inputs_init(self, env):
-        print 'app:', env
+        print 'inputs_init():', env
 
     def on_input_update(self, key, value):
-        print 'input_update:', key, value
+        print 'input_update():', key, '->', value
 
     def set_input(self, key, value):
         self.send_value(key, value, readonly=False)
@@ -53,6 +53,7 @@ class App(object):
         raise NotImplemented
 
     def send_value(self, key, value, readonly=False):
+        print 'send_value():', key, '->', value, '[readonly]' if readonly else ''
         self.namespace.send_value(key, value, readonly)
 
 

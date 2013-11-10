@@ -1,4 +1,6 @@
-angular.module("app").directive "trNav", ->
+app = angular.module "app"
+
+app.directive "trNav", ->
 	restrict: "E"
 	link: (scope, elem, attrs) ->
 		elem = $(elem)
@@ -10,4 +12,4 @@ angular.module("app").directive "trNav", ->
 			id: nav_id
 			text: nav_text
 		nav_text_elem.detach()
-		elem.attr 'id', nav_id
+		elem.attr "id", nav_id
