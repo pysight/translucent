@@ -6,7 +6,6 @@ if 'threading' in sys.modules:
 from gevent import monkey
 monkey.patch_all()
 import os
-from blinker import Signal
 from flask import Flask, Response, request
 from socketio import socketio_manage
 from socketio.server import SocketIOServer
@@ -14,7 +13,7 @@ from socketio.namespace import BaseNamespace
 from werkzeug.serving import run_with_reloader
 
 from .debugger import SocketIODebugger
-from .reactive import *
+from .reactive import ReactiveContext
 
 
 class App(object):

@@ -25,6 +25,7 @@
         "grunt-contrib-copy": "*",
         "grunt-usemin": "*",
         "grunt-contrib-cssmin": "*",
-        "grunt-contrib-concat": "*"
+        "grunt-contrib-concat": "*",
+        "grunt-coffeelint": "*"
     }
 }
