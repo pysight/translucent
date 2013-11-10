@@ -3,13 +3,20 @@
 import sys
 if 'threading' in sys.modules:
     del sys.modules['threading']
-from gevent import monkey
-monkey.patch_all()
+try:
+    if 'IPython' in sys.modules:
+        import IPython
+        if IPython.get_ipython():
+            raise Exception
+    from gevent import monkey
+    monkey.patch_all()
+    from socketio import socketio_manage
+    from socketio.server import SocketIOServer
+    from socketio.namespace import BaseNamespace
+except:
+    pass
 import os
 from flask import Flask, Response, request
-from socketio import socketio_manage
-from socketio.server import SocketIOServer
-from socketio.namespace import BaseNamespace
 from werkzeug.serving import run_with_reloader
 
 from .debugger import SocketIODebugger
