@@ -8,14 +8,17 @@ import jinja2
 from .utils import is_string, to_json
 
 
-def attr_if(condition, attribute, value):
+def attr_if(condition, attribute, value=None):
     if not condition:
         return u''
     if not is_string(attribute):
         raise Exception('attribute name must be a string')
-    if not is_string(value):
-        raise Exception('attribute value must be a string')
-    return ' %s="%s"' % (attribute, value)
+    if not is_string(value) and value is not None:
+        raise Exception('attribute value must be a string or None')
+    if value is not None:
+        return ' %s="%s"' % (attribute, value)
+    else:
+        return ' %s' % attribute
 
 
 @jinja2.contextfunction

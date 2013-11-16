@@ -4,15 +4,11 @@ import sys
 if 'threading' in sys.modules:
     del sys.modules['threading']
 try:
-    if 'IPython' in sys.modules:
-        import IPython
-        if IPython.get_ipython():
-            raise Exception
-    from gevent import monkey
-    monkey.patch_all()
     from socketio import socketio_manage
     from socketio.server import SocketIOServer
     from socketio.namespace import BaseNamespace
+    from gevent import monkey
+    monkey.patch_all()
 except:
     pass
 import os
@@ -21,9 +17,12 @@ from werkzeug.serving import run_with_reloader
 
 from .debugger import SocketIODebugger
 from .reactive import ReactiveContext
+from . import outputs
 
 
 class App(object):
+
+    outputs = {}
 
     def __init__(self, namespace):
         self.namespace = namespace
@@ -44,6 +43,10 @@ class App(object):
 
     def on_input_update(self, key, value):
         print 'input_update():', key, '->', value
+        # self.context.env._objects[key].set_value(value)
+        if key not in self.context:
+            self.context.value(key)
+        self.context[key] = value
 
     def set_input(self, key, value):
         self.send_value(key, value, readonly=False)
@@ -55,12 +58,38 @@ class App(object):
         if shared:
             self.send_value(key, value, readonly=True)
 
-    def new_expression(self, key, fn, shared=False):
-        raise NotImplemented
+    def reactive(self, key, fn, shared=False):
+        if callable(fn):
+            self.context.expression(key, fn)
+            if shared:
+                def observer(env):
+                    result = fn(env)
+                    self.send_value(key, result, readonly=True)
+                self.context.observer('_' + key, observer)
+        else:
+            self.set_value(key, fn, shared=shared)
 
     def send_value(self, key, value, readonly=False):
         print 'send_value():', key, '->', value, '[readonly]' if readonly else ''
         self.namespace.send_value(key, value, readonly)
+
+    def send_output(self, key, data):
+        print 'send_output():',  key, '->', data
+        self.namespace.send_output(key, data)
+
+    def link(self, key, fn=None):
+        if key not in self.outputs:
+            raise Exception('output "%s" not found' % key)
+        if not hasattr(outputs, self.outputs[key]):
+            raise Exception('no handler found for output "%s"' % key)
+        if fn is None:
+            fn = key
+        if isinstance(fn, basestring):
+            fn = lambda env: env[key]
+        def observer(env):
+            result = getattr(outputs, self.outputs[key])(fn(env))
+            self.send_output(key, result)
+        self.context.observer('_' + key, observer)
 
 
 class SocketIONamespace(BaseNamespace):
@@ -69,9 +98,13 @@ class SocketIONamespace(BaseNamespace):
         super(SocketIONamespace, self).__init__(*args, **kwargs)
         self.app = self.app_class(self)
         self.app.on_init()
+        self.app.context.run()
 
     def send_value(self, key, value, readonly=False):
         self.emit('value_update', {'key': key, 'value': value, 'readonly': readonly})
+
+    def send_output(self, key, data):
+        self.emit('output_update', {'key': key, 'data': data})
 
     def on_input_update(self, data):
         self.app.on_input_update(data['key'], data['value'])
@@ -110,6 +143,7 @@ class Server(object):
         self.flask_app.route('/')(self.index)
         self.flask_app.route('/socket.io/<path:path>')(self.socketio)
         self.template = ui.render_layout()
+        self.app_class.outputs = ui.outputs
 
     def run(self):
         try:

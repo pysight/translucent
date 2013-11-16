@@ -5,7 +5,9 @@ import inspect
 
 
 class UndefinedKey(Exception):
-    pass
+
+    def __init__(self, name=None):
+        self.name = name
 
 
 class ReactiveObject(object):
@@ -54,12 +56,14 @@ class ReactiveValue(ReactiveObject):
         super(ReactiveValue, self).__init__(name)
 
     def set_value(self, new_value):
+        print 'ro.set_value():', self.name, '->', new_value
         if self.value != new_value:
             self.invalidate()
         self.value = new_value
         self.env._flush()
 
     def get_value(self):
+        print 'rv.get_value():', self.name
         self.invalidated = False
         return self.value
 
@@ -71,8 +75,11 @@ class ReactiveExpression(ReactiveObject):
         self.fn = fn
 
     def get_value(self):
+        print 're.get_value():', self.name
         if self.invalidated:
+            print '  -> dirty, running function'
             self.value = self.fn(self.env)
+            print '  -> clean'
             self.invalidated = False
         return self.value
 
@@ -87,11 +94,14 @@ class ReactiveObserver(ReactiveObject):
         return True
 
     def run(self, *args):
+        print 'ro.run():', self.name
         try:
             self.fn(self.env)
             self.invalidated = False
-        except UndefinedKey:
-            pass
+        except UndefinedKey as e:
+            if e.name not in self.env._pending:
+                self.env._pending[e.name] = []
+            self.env._pending[e.name].append(self)
 
 
 class ReactiveEnvironment(object):
@@ -99,6 +109,7 @@ class ReactiveEnvironment(object):
     def __init__(self):
         self._objects = {}
         self._on_flush = blinker.Signal()
+        self._pending = {}
 
     def _flush(self):
         self._on_flush.send(self)
@@ -107,6 +118,11 @@ class ReactiveEnvironment(object):
     def _register(self, obj):
         self._objects[obj.name] = obj
         obj.set_env(self)
+        if obj.name in self._pending:
+            pending = self._pending[obj.name]
+            while pending:
+                pending.pop().run()
+            del self._pending[obj.name]
         return obj
 
     def _get_caller(self):
@@ -117,8 +133,10 @@ class ReactiveEnvironment(object):
         return None
 
     def _get_value(self, name):
+        print 'env._get_value():', name
         if name not in self._objects:
-            raise UndefinedKey
+            print '  -> undefined'
+            raise UndefinedKey(name)
         obj = self._objects[name]
         if obj.is_observer():
             raise TypeError('cannot get the value of observer "%s"' % name)
@@ -147,6 +165,11 @@ class ReactiveContext(object):
 
     def __setitem__(self, name, value):
         self.env._objects[name].set_value(value)
+
+    def run(self):
+        for k, v in self.env._objects.iteritems():
+            if isinstance(v, ReactiveObserver):
+                v.run()
 
     def value(self, name):
         obj = self.env._register(ReactiveValue(name))

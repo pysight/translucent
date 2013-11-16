@@ -4,8 +4,10 @@ class Context
 
     constructor: (@$timeout, @$rootScope, @$log, @socket) ->
         @env = {}
+        @out = {}
         @readonly = {}
         @socket.on "value_update", @on_value_update
+        @socket.on "output_update", @on_output_update
         @socket.on "connect", @on_connect
 
     update: (key) =>
@@ -27,6 +29,13 @@ class Context
         @$rootScope.$apply =>
             @env[data.key] = data.value
 
+    on_output_update: (data) =>
+        @$log.log "context.on_output_update(): ", angular.toJson(data)
+        @$rootScope.$apply =>
+            @out[data.key] = {"data": {}}
+            for k, v of data.data
+                @out[data.key].data[k] = v
+
     on_connect: =>
         @$log.log "context.on_connect()"
         env = {}
@@ -35,6 +44,5 @@ class Context
                 env[k] = v
         @$log.log "\tsocket.emit('inputs_init'):", angular.toJson(env)
         @socket.emit "inputs_init", env
-
 
 app.service "context", ["$timeout", "$rootScope", "$log", "socket", Context]

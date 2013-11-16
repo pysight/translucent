@@ -85,6 +85,7 @@ class RenderEngine(object):
         self.register_function('debug', debug)
         self.register_macros('macros', self.load_source('macros.html'))
         self.register_default_value_types()
+        self.outputs = {}
 
     def load_source(self, path):
         return self.loader.get_source(self.env, path)[0]
@@ -164,6 +165,8 @@ class RenderEngine(object):
         args = self.parse_args(component, kwargs)
         template = self.env.from_string(self.generate_imports() + component['template'])
         args.update(self.macros)
+        if component.get('output', False):
+            self.outputs[kwargs['id']] = _component_name
 
         def render_fn(*contents):
             if contents and not component.get('container', False):
