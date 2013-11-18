@@ -1,7 +1,7 @@
 # -*- coding: utf-8
 
 from nose.tools import assert_true, assert_false, assert_equals, assert_raises
-from translucent.reactive import (
+from translucent.reactive import (UndefinedKey,
     ReactiveContext, ReactiveValue, ReactiveExpression, ReactiveObserver)
 
 
@@ -54,6 +54,66 @@ def test_constructors():
     assert_equals(rc().new_value(a=1).name, 'a')
     assert_equals(rc().new_value(a=1).name, 'a')
     assert_true(rc().new_value(a=1).is_value())
+
+
+def test_decorators():
+
+    rc = ReactiveContext()
+    rc.new_value(a=1)
+
+    @rc.expression('b')
+    def b(env):
+        return env.a + 1
+
+    @rc.observer('c')
+    def c(env):
+        return env.b + 1
+
+    rc.run()
+    assert_equals(rc['b'].exec_count, 1)
+    assert_equals(rc['c'].exec_count, 1)
+    assert_equals(rc['c'].value, 3)
+
+    assert_raises(Exception, rc.expression, 'hello', 'world')
+    assert_raises(Exception, rc.expression('hello'), 'world')
+
+    assert_raises(Exception, rc.observer, 'hello', 'world')
+    assert_raises(Exception, rc.observer('hello'), 'world')
+
+
+def test_undefined_key():
+
+    try:
+        raise UndefinedKey('a')
+    except UndefinedKey as e:
+        assert_equals(e.name, 'a')
+
+    rc = ReactiveContext()
+    rc.new_expression('b', lambda env: env.a + 1)
+    rc.new_observer('c', lambda env: env.b + 1)
+    assert_raises(Exception, lambda: rc['a'])
+
+    rc.run()
+    assert_equals(rc['b'].exec_count, 1)
+    assert_equals(rc['c'].exec_count, 1)
+
+    rc.new_value(a=1)
+    assert_equals(rc['b'].exec_count, 2)
+    assert_equals(rc['c'].exec_count, 2)
+    assert_equals(rc['c'].value, 3)
+
+
+def test_set_same_value():
+
+    rc = ReactiveContext()
+    rc.new_value(a=1)
+    rc.new_observer('b', lambda env: env.a)
+
+    rc.run()
+    assert_equals(rc['b'].exec_count, 1)
+
+    rc.set_value(a=1)
+    assert_equals(rc['b'].exec_count, 1)
 
 
 def test_overreactivity_1():
@@ -134,7 +194,7 @@ def test_circular_references():
     def b(env):
         if env.a is 0:
             return 0
-        env.a -= 1
+        env['a'] -= 1
         return env.a
 
     rc = ReactiveContext()

@@ -61,12 +61,6 @@ class ReactiveObject(object):
         if self not in parent.children:
             parent.children.append(self)
 
-    def add_child(self, child):
-        if child not in self.children:
-            self.children.append(child)
-        if self not in child.parents:
-            child.parents.append(self)
-
 
 class ReactiveValue(ReactiveObject):
 
@@ -91,6 +85,8 @@ class ReactiveExpression(ReactiveObject):
 
     def __init__(self, name, fn):
         super(ReactiveExpression, self).__init__(name)
+        if not callable(fn):
+            raise Exception('fn in expression "%s" must be a callable' % name)
         self.fn = fn
 
     def get_value(self, isolate=False):
@@ -114,6 +110,8 @@ class ReactiveObserver(ReactiveObject):
 
     def __init__(self, name, fn):
         super(ReactiveObserver, self).__init__(name)
+        if not callable(fn):
+            raise Exception('fn in expression "%s" must be a callable' % name)
         self.fn = fn
 
     def run(self, *args):
