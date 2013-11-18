@@ -1,5 +1,7 @@
 # -*- coding: utf-8
 
+import sys
+from cStringIO import StringIO
 from nose.tools import assert_true, assert_false, assert_equals, assert_raises
 from translucent.reactive import (UndefinedKey,
     ReactiveContext, ReactiveValue, ReactiveExpression, ReactiveObserver)
@@ -103,6 +105,18 @@ def test_undefined_key():
     assert_equals(rc['c'].value, 3)
 
 
+def test_environment():
+
+    rc = ReactiveContext()
+    assert_equals(rc.env._context, rc)
+    assert_equals(rc.env._isolate, False)
+    assert_raises(UndefinedKey, lambda: rc.env.a)
+    assert_raises(UndefinedKey, lambda: rc.env['a'])
+    env = rc.env[:]
+    assert_equals(env._context, rc)
+    assert_equals(env._isolate, True)
+
+
 def test_set_same_value():
 
     rc = ReactiveContext()
@@ -156,7 +170,7 @@ def test_overreactivity_2():
     assert_equals(rc['d'].exec_count, 2)
 
 
-def test_order_of_evaluation_1():
+def test_order_of_evaluation():
 
     rc = ReactiveContext()
     rc.new_value(a=1)
@@ -192,20 +206,20 @@ def test_order_of_evaluation_1():
 def test_circular_references():
 
     def b(env):
-        if env.a is 0:
+        if env['a'] is 0:
             return 0
         env['a'] -= 1
-        return env.a
+        return env['a']
 
     rc = ReactiveContext()
-    rc.new_value(a=3)
-    rc.new_expression(b=b)
+    rc.new_value('a', 3)
+    rc.new_expression('b', b)
     rc.new_observer('c', lambda env: env.b)
 
     rc.run()
     assert_equals(rc['c'].exec_count, 4)
 
-    rc.set_value(a=3)
+    rc.set_value('a', 3)
     assert_equals(rc['c'].exec_count, 8)
 
 
@@ -310,3 +324,65 @@ def test_write_then_read_not_circular():
 
     rc.set_value(a=10)
     assert_equals(rc['c'].exec_count, 2)
+
+
+def test_children_parents():
+
+    rc = ReactiveContext()
+    rc.new_value(a=1)
+    assert_equals(len(rc['a'].children), 0)
+    rc.get_value('a')
+    assert_equals(len(rc['a'].children), 0)
+
+    rc.new_observer('b', lambda env: env.a)
+    rc.run()
+    assert_equals(len(rc['a'].children), 1)
+    assert_equals(len(rc['a'].parents), 0)
+    assert_equals(len(rc['b'].parents), 1)
+    assert_equals(len(rc['b'].children), 0)
+
+
+def test_log():
+
+    buf = StringIO()
+
+    rc = ReactiveContext(log=buf)
+    assert_equals(rc.log_stream, buf)
+
+    rc.stop_log()
+    assert_equals(rc.log_stream, None)
+
+    rc.start_log()
+    assert_equals(rc.log_stream, sys.stdout)
+
+    rc.start_log(buf)
+    rc.log('a %r %d', [1], 2)
+    assert_equals(buf.getvalue(), 'a [1] 2\n')
+
+    buf.truncate(0)
+    with rc.log_block('b'):
+        rc.log('c')
+    assert_equals(buf.getvalue(), 'b\n  c\n')
+
+    buf.truncate(0)
+    with rc.log_block():
+        rc.log('c')
+    assert_equals(buf.getvalue(), '  c\n')
+
+    buf.truncate(0)
+    try:
+        rc.log('a')
+        with rc.log_block('b'):
+            rc.log('c')
+            raise Exception
+    except:
+        pass
+    rc.log('d')
+    assert_equals(buf.getvalue(), 'a\nb\n  c\nd\n')
+
+    buf.truncate(0)
+    rc.stop_log()
+    rc.log('a')
+    with rc.log_block('b'):
+        rc.log('c')
+    assert_equals(buf.getvalue(), '')

@@ -135,10 +135,7 @@ class ReactiveEnvironment(object):
         self._isolate = isolate
 
     def __getattr__(self, key):
-        if key not in ('_context', '_isolate'):
-            return self._context.get_value(key, self._isolate)
-        else:
-            return self.__dict__[key]
+        return self._context.get_value(key, self._isolate)
 
     def __getitem__(self, key):
         if key == slice(None, None, None):
