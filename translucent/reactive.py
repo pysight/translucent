@@ -3,7 +3,6 @@
 import inspect
 import re
 import sys
-import pandas as pd
 from contextlib import contextmanager
 from collections import defaultdict
 
@@ -69,7 +68,8 @@ class ReactiveValue(ReactiveObject):
         self.value = value
 
     def set_value(self, new_value):
-        with self.context.log_block('%s.set_value(%r)', self.name, new_value):
+        with self.context.log_block('%s.set_value(%s)', self.name,
+                self.context.fmt_value(new_value)):
             if self.value != new_value:
                 self.invalidate()
             self.value = new_value
@@ -157,31 +157,28 @@ class ReactiveEnvironment(object):
 
 class ReactiveContext(object):
 
-    def __init__(self, log=None):
+    def __init__(self, log=None, formatter=None):
         self.env = ReactiveEnvironment(self)
         self.objects = {}
         self.pending = defaultdict(list)
         self.flush_queue = []
         self.log_stream = None
         self.log_indent = 0
+        self.fmt_value = formatter or repr
         self.running = []
         if log is True:
             self.start_log()
         elif log is not None:
             self.start_log(log)
 
-    def start_log(self, stream=None):
+    def start_log(self, stream=None, formatter=None):
+        self.fmt_value = formatter or repr
         self.log_stream = stream or sys.stdout
 
     def stop_log(self):
         self.log_stream = None
 
     def log(self, fmt, *args):
-        args = list(args)
-        for i, arg in enumerate(args):
-            if isinstance(arg, (pd.DataFrame, pd.Series)):
-                args[i] = type(arg)
-        args = tuple(args)
         if self.log_stream is not None:
             self.log_stream.write('  ' * self.log_indent + fmt % args + '\n')
 
@@ -222,7 +219,7 @@ class ReactiveContext(object):
                 caller.add_parent(obj)
         with self.log_block('get_value(%s)%s', name, ' [isolated]' * isolate):
             value = obj.get_value(isolate=True)
-        self.log('=> %r', value)
+        self.log('=> %s', self.fmt_value(value))
         return value
 
     def set_value(self, *args, **kwargs):
@@ -233,7 +230,7 @@ class ReactiveContext(object):
             obj = self.objects[k]
             if not obj.is_value():
                 raise Exception('"%s" is not a reactive value' % k)
-            with self.log_block('set_value(%s, %r)', k, v):
+            with self.log_block('set_value(%s, %r)', k, self.fmt_value(v)):
                 obj.set_value(v)
 
     def flush(self):

@@ -381,6 +381,16 @@ def test_log():
     assert_equals(buf.getvalue(), 'a\nb\n  c\nd\n')
 
     buf.truncate(0)
+    rc.log('%s %s', rc.fmt_value([1, 2]), rc.fmt_value({1: 2}))
+    assert_equals(buf.getvalue(), '[1, 2] {1: 2}\n')
+
+    buf.truncate(0)
+    formatter = lambda x: 'x' if isinstance(x, dict) else x
+    rc.start_log(buf, formatter)
+    rc.log('%s %s', rc.fmt_value([1, 2]), rc.fmt_value({1: 2}))
+    assert_equals(buf.getvalue(), '[1, 2] x\n')
+
+    buf.truncate(0)
     rc.stop_log()
     rc.log('a')
     with rc.log_block('b'):
