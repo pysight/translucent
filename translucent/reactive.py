@@ -46,11 +46,14 @@ class ReactiveObject(object):
                 parent.children = [child for child in parent.children if child != self]
         self.children = []
 
+    def is_value(self):
+        return isinstance(self, ReactiveValue)
+
     def is_observer(self):
         return isinstance(self, ReactiveObserver)
 
-    def is_value(self):
-        return isinstance(self, ReactiveValue)
+    def is_expression(self):
+        return isinstance(self, ReactiveExpression)
 
     def add_parent(self, parent):
         if parent not in self.parents:
@@ -78,8 +81,9 @@ class ReactiveValue(ReactiveObject):
             self.value = new_value
             self.context.flush()
 
-    def get_value(self):
-        self.invalidated = False
+    def get_value(self, isolate=False):
+        if not isolate:
+            self.invalidated = False
         return self.value
 
 
@@ -89,7 +93,7 @@ class ReactiveExpression(ReactiveObject):
         super(ReactiveExpression, self).__init__(name)
         self.fn = fn
 
-    def get_value(self):
+    def get_value(self, isolate=False):
         if self.invalidated or self in self.context.running:
             try:
                 self.context.running[0:0] = [self]
@@ -128,29 +132,32 @@ class ReactiveObserver(ReactiveObject):
 
 class ReactiveEnvironment(object):
 
-    def __init__(self, context):
+    def __init__(self, context, isolate=False):
         self._context = context
+        self._isolate = isolate
 
-    def __getattr__(self, name):
-        if name != '_context':
-            return self._context.get_value(name)
+    def __getattr__(self, key):
+        if key not in ('_context', '_isolate'):
+            return self._context.get_value(key, self._isolate)
         else:
-            return self.__dict__[name]
+            return self.__dict__[key]
 
-    def __getitem__(self, name):
-        return self._context.get_value(name)
+    def __getitem__(self, key):
+        if key == slice(None, None, None):
+            return self.__class__(self._context, True)
+        return self._context.get_value(key, self._isolate)
 
-    def __setattr__(self, name, value):
-        if name != '_context':
-            self._context.set_value(name, value)
+    def __setattr__(self, key, value):
+        if key not in ('_context', '_isolate'):
+            self._context.set_value(key, value)
         else:
-            self.__dict__[name] = value
+            self.__dict__[key] = value
 
-    def __setitem__(self, name, value):
-        self._context.set_value(name, value)
+    def __setitem__(self, key, value):
+        self._context.set_value(key, value)
 
-    def __contains__(self, name):
-        return name in self._context
+    def __contains__(self, key):
+        return key in self._context
 
 
 class ReactiveContext(object):
@@ -201,13 +208,6 @@ class ReactiveContext(object):
     def __getitem__(self, name):
         return self.objects[name]
 
-    def register(self, obj):
-        self.objects[obj.name] = obj
-        obj.context = self
-        while self.pending[obj.name]:
-            self.pending[obj.name].pop().run()
-        return obj
-
     def get_caller(self):
         for frame in inspect.stack():
             caller = frame[0].f_locals.get('self', None)
@@ -215,28 +215,31 @@ class ReactiveContext(object):
                 return caller
         return None
 
-    def get_value(self, name):
+    def get_value(self, name, isolate=False):
         if name not in self.objects:
             raise UndefinedKey(name)
         obj = self.objects[name]
         if obj.is_observer():
             raise Exception('cannot get the value of observer "%s"' % name)
-        caller = self.get_caller()
-        if caller is not None and caller != obj:
-            caller.add_parent(obj)
-        with self.log_block('get_value(%s)', name):
-            value = obj.get_value()
+        if not isolate:
+            caller = self.get_caller()
+            if caller is not None and caller != obj:
+                caller.add_parent(obj)
+        with self.log_block('get_value(%s)%s', name, ' [isolated]' * isolate):
+            value = obj.get_value(isolate=True)
         self.log('=> %r', value)
         return value
 
-    def set_value(self, name, value, auto_add=False):
-        if auto_add and name not in self.objects:
-            return self.new_value(name, value)
-        obj = self.objects[name]
-        if not obj.is_value():
-            raise Exception('"%s" is not a reactive value' % name)
-        with self.log_block('set_value(%s, %r)', name, value):
-            obj.set_value(value)
+    def set_value(self, *args, **kwargs):
+        auto_add = kwargs.pop('_auto_add', False)
+        for k, v in self._get_args(ReactiveValue, *args, **kwargs):
+            if auto_add and k not in self.objects:
+                return self.new_value(k, v)
+            obj = self.objects[k]
+            if not obj.is_value():
+                raise Exception('"%s" is not a reactive value' % k)
+            with self.log_block('set_value(%s, %r)', k, v):
+                obj.set_value(v)
 
     def flush(self):
         if self.running:
@@ -255,14 +258,45 @@ class ReactiveContext(object):
             [v.run() for v in self.objects.itervalues() if v.is_observer()]
             self.flush()
 
-    def new_value(self, name, value):
-        return self.register(ReactiveValue(name, value))
+    @staticmethod
+    def _get_args(cls, *args, **kwargs):
+        if issubclass(cls, (ReactiveExpression, ReactiveObserver)):
+            kind = 'fn/value'
+        else:
+            kind = 'name/value'
+        if not args and not kwargs:
+            raise Exception('at least one %s pair or kwargs must be provided' % kind)
+        if len(args) % 2:
+            raise Exception('args length must be divisible by 2 (list of %s pairs)' % kind)
+        duplicates = sorted(set(args[0::2]) & set(kwargs.iterkeys()))
+        if duplicates:
+            raise Exception('duplicate arguments passed: %r' % duplicates)
+        result = dict(zip(args[0::2], args[1::2]))
+        result.update(kwargs)
+        return result.items()
 
-    def new_expression(self, name, fn):
-        return self.register(ReactiveExpression(name, fn))
+    def _register(self, obj):
+        self.objects[obj.name] = obj
+        obj.context = self
+        while self.pending[obj.name]:
+            self.pending[obj.name].pop().run()
+        return obj
 
-    def new_observer(self, name, fn):
-        return self.register(ReactiveObserver(name, fn))
+    def _new_object(self, cls, *args, **kwargs):
+        result = []
+        for k, v in self._get_args(cls, *args, **kwargs):
+            result.append(self._register(cls(k, v)))
+        if len(result) is 1:
+            return result[0]
+
+    def new_value(self, *args, **kwargs):
+        return self._new_object(ReactiveValue, *args, **kwargs)
+
+    def new_expression(self, *args, **kwargs):
+        return self._new_object(ReactiveExpression, *args, **kwargs)
+
+    def new_observer(self, *args, **kwargs):
+        return self._new_object(ReactiveObserver, *args, **kwargs)
 
     def expression(self, name):
         def decorator(fn):

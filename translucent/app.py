@@ -43,13 +43,13 @@ class App(object):
 
     def on_input_update(self, key, value):
         print 'input_update():', key, '->', value
-        self.context.set_value(key, value, auto_add=True)
+        self.context.set_value(key, value, _auto_add=True)
 
     def set_input(self, key, value):
         self.send_value(key, value, readonly=False)
 
     def set_value(self, key, value, shared=False):
-        self.context.set_value(key, value, auto_add=True)
+        self.context.set_value(key, value, _auto_add=True)
         if shared:
             self.send_value(key, value, readonly=True)
 
