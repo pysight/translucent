@@ -33,6 +33,7 @@ ui.set('right')(
     ]
 )
 
+
 class ExampleApp(App):
 
     @classmethod

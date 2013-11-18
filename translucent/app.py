@@ -43,29 +43,24 @@ class App(object):
 
     def on_input_update(self, key, value):
         print 'input_update():', key, '->', value
-        # self.context.env._objects[key].set_value(value)
-        if key not in self.context:
-            self.context.value(key)
-        self.context[key] = value
+        self.context.set_value(key, value, auto_add=True)
 
     def set_input(self, key, value):
         self.send_value(key, value, readonly=False)
 
     def set_value(self, key, value, shared=False):
-        if key not in self.context:
-            self.context.value(key)
-        self.context[key] = value
+        self.context.set_value(key, value, auto_add=True)
         if shared:
             self.send_value(key, value, readonly=True)
 
     def reactive(self, key, fn, shared=False):
         if callable(fn):
-            self.context.expression(key, fn)
+            self.context.new_expression(key, fn)
             if shared:
                 def observer(env):
                     result = fn(env)
                     self.send_value(key, result, readonly=True)
-                self.context.observer('_' + key, observer)
+                self.context.new_observer('__' + key, observer)
         else:
             self.set_value(key, fn, shared=shared)
 
@@ -74,7 +69,7 @@ class App(object):
         self.namespace.send_value(key, value, readonly)
 
     def send_output(self, key, data):
-        print 'send_output():',  key, '->', data
+        print 'send_output():', key, '->', data
         self.namespace.send_output(key, data)
 
     def link(self, key, fn=None):
@@ -86,10 +81,11 @@ class App(object):
             fn = key
         if isinstance(fn, basestring):
             fn = lambda env: env[key]
+
         def observer(env):
             result = getattr(outputs, self.outputs[key])(fn(env))
             self.send_output(key, result)
-        self.context.observer('_' + key, observer)
+        self.context.new_observer('__' + key, observer)
 
 
 class SocketIONamespace(BaseNamespace):

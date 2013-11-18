@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import blinker
 import inspect
+import re
+import sys
+import pandas as pd
+from contextlib import contextmanager
+from collections import defaultdict
+
+from .utils import is_string
 
 
 class UndefinedKey(Exception):
@@ -13,29 +19,38 @@ class UndefinedKey(Exception):
 class ReactiveObject(object):
 
     def __init__(self, name):
+        name_regex = r'^((_[_]+)|[a-zA-Z])[_a-zA-Z0-9]*$'
+        if not is_string(name) or not re.match(name_regex, name):
+            raise Exception('invalid reactive object name: "%s"' % name)
         self.name = name
         self.value = None
         self.fn = None
         self.invalidated = True
         self.parents = []
         self.children = []
-        self.env = None
+        self.context = None
+        self.exec_count = 0
 
     def invalidate(self):
         self.invalidated = True
-        for child in self.children:
-            child.invalidate()
-            if child.is_observer():
-                self.env._on_flush.connect(child.run)
-        for parent in self.parents:
-            parent.children = [child for child in parent.children if child != self]
+        with self.context.log_block('%s.invalidate()', self.name):
+            for child in self.children:
+                child.invalidate()
+                if child.is_observer():
+                    if child not in self.context.flush_queue:
+                        self.context.log('flush_queue.append(%s)', child.name)
+                        self.context.flush_queue.append(child)
+                    else:
+                        self.context.log('%s in flush_queue', child.name)
+            for parent in self.parents:
+                parent.children = [child for child in parent.children if child != self]
         self.children = []
 
-    def set_env(self, env):
-        self.env = env
-
     def is_observer(self):
-        return False
+        return isinstance(self, ReactiveObserver)
+
+    def is_value(self):
+        return isinstance(self, ReactiveValue)
 
     def add_parent(self, parent):
         if parent not in self.parents:
@@ -52,18 +67,18 @@ class ReactiveObject(object):
 
 class ReactiveValue(ReactiveObject):
 
-    def __init__(self, name):
+    def __init__(self, name, value):
         super(ReactiveValue, self).__init__(name)
+        self.value = value
 
     def set_value(self, new_value):
-        print 'ro.set_value():', self.name, '->', new_value
-        if self.value != new_value:
-            self.invalidate()
-        self.value = new_value
-        self.env._flush()
+        with self.context.log_block('%s.set_value(%r)', self.name, new_value):
+            if self.value != new_value:
+                self.invalidate()
+            self.value = new_value
+            self.context.flush()
 
     def get_value(self):
-        print 'rv.get_value():', self.name
         self.invalidated = False
         return self.value
 
@@ -75,12 +90,19 @@ class ReactiveExpression(ReactiveObject):
         self.fn = fn
 
     def get_value(self):
-        print 're.get_value():', self.name
-        if self.invalidated:
-            print '  -> dirty, running function'
-            self.value = self.fn(self.env)
-            print '  -> clean'
-            self.invalidated = False
+        if self.invalidated or self in self.context.running:
+            try:
+                self.context.running[0:0] = [self]
+                self.invalidated = False
+                with self.context.log_block('%s.run()', self.name):
+                    self.value = self.fn(self.context.env)
+            except UndefinedKey as e:
+                self.context.log('=> UndefinedKey')
+                self.invalidated = True
+                raise e
+            finally:
+                self.context.running.remove(self)
+                self.exec_count += 1
         return self.value
 
 
@@ -90,97 +112,164 @@ class ReactiveObserver(ReactiveObject):
         super(ReactiveObserver, self).__init__(name)
         self.fn = fn
 
-    def is_observer(self):
-        return True
-
     def run(self, *args):
-        print 'ro.run():', self.name
         try:
-            self.fn(self.env)
+            self.context.running[0:0] = [self]
             self.invalidated = False
+            with self.context.log_block('%s.run()', self.name):
+                self.value = self.fn(self.context.env)
         except UndefinedKey as e:
-            if e.name not in self.env._pending:
-                self.env._pending[e.name] = []
-            self.env._pending[e.name].append(self)
+            self.context.log('=> UndefinedKey')
+            self.context.pending[e.name].append(self)
+        finally:
+            self.context.running.remove(self)
+            self.exec_count += 1
 
 
 class ReactiveEnvironment(object):
 
-    def __init__(self):
-        self._objects = {}
-        self._on_flush = blinker.Signal()
-        self._pending = {}
+    def __init__(self, context):
+        self._context = context
 
-    def _flush(self):
-        self._on_flush.send(self)
-        self._on_flush = blinker.Signal()
+    def __getattr__(self, name):
+        if name != '_context':
+            return self._context.get_value(name)
+        else:
+            return self.__dict__[name]
 
-    def _register(self, obj):
-        self._objects[obj.name] = obj
-        obj.set_env(self)
-        if obj.name in self._pending:
-            pending = self._pending[obj.name]
-            while pending:
-                pending.pop().run()
-            del self._pending[obj.name]
+    def __getitem__(self, name):
+        return self._context.get_value(name)
+
+    def __setattr__(self, name, value):
+        if name != '_context':
+            self._context.set_value(name, value)
+        else:
+            self.__dict__[name] = value
+
+    def __setitem__(self, name, value):
+        self._context.set_value(name, value)
+
+    def __contains__(self, name):
+        return name in self._context
+
+
+class ReactiveContext(object):
+
+    def __init__(self, log=None):
+        self.env = ReactiveEnvironment(self)
+        self.objects = {}
+        self.pending = defaultdict(list)
+        self.flush_queue = []
+        self.log_stream = None
+        self.log_indent = 0
+        self.running = []
+        if log is True:
+            self.start_log()
+        elif log is not None:
+            self.start_log(log)
+
+    def start_log(self, stream=None):
+        self.log_stream = stream or sys.stdout
+
+    def stop_log(self):
+        self.log_stream = None
+
+    def log(self, fmt, *args):
+        args = list(args)
+        for i, arg in enumerate(args):
+            if isinstance(arg, (pd.DataFrame, pd.Series)):
+                args[i] = type(arg)
+        args = tuple(args)
+        if self.log_stream is not None:
+            self.log_stream.write('  ' * self.log_indent + fmt % args + '\n')
+
+    @contextmanager
+    def log_block(self, fmt=None, *args):
+        if fmt is not None:
+            self.log(fmt, *args)
+        self.log_indent += 1
+        try:
+            yield
+        except Exception as e:
+            raise e
+        finally:
+            self.log_indent -= 1
+
+    def __contains__(self, name):
+        return name in self.objects
+
+    def __getitem__(self, name):
+        return self.objects[name]
+
+    def register(self, obj):
+        self.objects[obj.name] = obj
+        obj.context = self
+        while self.pending[obj.name]:
+            self.pending[obj.name].pop().run()
         return obj
 
-    def _get_caller(self):
+    def get_caller(self):
         for frame in inspect.stack():
             caller = frame[0].f_locals.get('self', None)
             if isinstance(caller, ReactiveObject):
                 return caller
         return None
 
-    def _get_value(self, name):
-        print 'env._get_value():', name
-        if name not in self._objects:
-            print '  -> undefined'
+    def get_value(self, name):
+        if name not in self.objects:
             raise UndefinedKey(name)
-        obj = self._objects[name]
+        obj = self.objects[name]
         if obj.is_observer():
-            raise TypeError('cannot get the value of observer "%s"' % name)
-        caller = self._get_caller()
-        if caller is not None:
+            raise Exception('cannot get the value of observer "%s"' % name)
+        caller = self.get_caller()
+        if caller is not None and caller != obj:
             caller.add_parent(obj)
-        return obj.get_value()
+        with self.log_block('get_value(%s)', name):
+            value = obj.get_value()
+        self.log('=> %r', value)
+        return value
 
-    def __getattr__(self, name):
-        return self._get_value(name)
+    def set_value(self, name, value, auto_add=False):
+        if auto_add and name not in self.objects:
+            return self.new_value(name, value)
+        obj = self.objects[name]
+        if not obj.is_value():
+            raise Exception('"%s" is not a reactive value' % name)
+        with self.log_block('set_value(%s, %r)', name, value):
+            obj.set_value(value)
 
-    def __getitem__(self, name):
-        return self._get_value(name)
-
-    def __contains__(self, name):
-        return name in self._objects
-
-
-class ReactiveContext(object):
-
-    def __init__(self):
-        self.env = ReactiveEnvironment()
-
-    def __contains__(self, name):
-        return name in self.env
-
-    def __setitem__(self, name, value):
-        self.env._objects[name].set_value(value)
+    def flush(self):
+        if self.running:
+            self.log('no flush (already running)')
+            return
+        with self.log_block('flush()'):
+            while self.flush_queue:
+                obj = self.flush_queue.pop()
+                with self.log_block('flush_queue.pop(%s).run()', obj.name):
+                    obj.run()
+        if self.flush_queue:
+            self.flush()
 
     def run(self):
-        for k, v in self.env._objects.iteritems():
-            if isinstance(v, ReactiveObserver):
-                v.run()
+        with self.log_block('run()'):
+            [v.run() for v in self.objects.itervalues() if v.is_observer()]
+            self.flush()
 
-    def value(self, name):
-        obj = self.env._register(ReactiveValue(name))
-        return obj
+    def new_value(self, name, value):
+        return self.register(ReactiveValue(name, value))
 
-    def expression(self, name, fn=None):
-        def new_fn(fn):
-            return self.env._register(ReactiveExpression(name, fn))
-        return new_fn if fn is None else new_fn(fn)
+    def new_expression(self, name, fn):
+        return self.register(ReactiveExpression(name, fn))
 
-    def observer(self, name, fn=None):
-        def new_fn(fn):
-            return self.env._register(ReactiveObserver(name, fn))
-        return new_fn if fn is None else new_fn(fn)
+    def new_observer(self, name, fn):
+        return self.register(ReactiveObserver(name, fn))
+
+    def expression(self, name):
+        def decorator(fn):
+            return self.new_expression(name, fn)
+        return decorator
+
+    def observer(self, name):
+        def decorator(fn):
+            return self.new_observer(name, fn)
+        return decorator
