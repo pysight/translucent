@@ -29,18 +29,19 @@ class ReactiveObject(object):
         self.children = []
         self.context = None
         self.exec_count = 0
+        self.suspended = False
 
     def invalidate(self):
         self.invalidated = True
+        if self.is_observer() and not self.suspended:
+            if self not in self.context.flush_queue:
+                self.context.log('flush_queue.append(%s)', self.name)
+                self.context.flush_queue.append(self)
+            else:
+                self.context.log('%s in flush_queue', self.name)
         with self.context.log_block('%s.invalidate()', self.name):
             for child in self.children:
                 child.invalidate()
-                if child.is_observer():
-                    if child not in self.context.flush_queue:
-                        self.context.log('flush_queue.append(%s)', child.name)
-                        self.context.flush_queue.append(child)
-                    else:
-                        self.context.log('%s in flush_queue', child.name)
             for parent in self.parents:
                 parent.children = [child for child in parent.children if child != self]
         self.children = []
@@ -127,6 +128,18 @@ class ReactiveObserver(ReactiveObject):
             self.context.running.remove(self)
             self.exec_count += 1
 
+    def suspend(self):
+        self.context.log('%s.suspend()', self.name)
+        self.suspended = True
+
+    def resume(self, run=False):
+        self.context.log('%s.resume()', self.name)
+        if self.suspended and self.invalidated and run:
+            self.suspended = False
+            self.run()
+        else:
+            self.suspended = False
+
 
 class ReactiveEnvironment(object):
 
@@ -140,7 +153,7 @@ class ReactiveEnvironment(object):
     def __getitem__(self, key):
         if key == slice(None, None, None):
             if not self._isolate:
-                return self.__class__(self._context, True)
+                return self.__class__(self._context, isolate=True)
             else:
                 return self
         elif key is Ellipsis:
@@ -261,8 +274,22 @@ class ReactiveContext(object):
 
     def run(self):
         with self.log_block('run()'):
-            [v.run() for v in self.objects.itervalues() if v.is_observer()]
+            for obj in self.objects.itervalues():
+                if obj.is_observer() and obj.invalidated:
+                    obj.run()
             self.flush()
+
+    def suspend(self, key):
+        obj = self.objects[key]
+        if not obj.is_observer():
+            raise Exception('can only suspend observers')
+        obj.suspend()
+
+    def resume(self, key, run=False):
+        obj = self.objects[key]
+        if not obj.is_observer():
+            raise Exception('can only resume observers')
+        obj.resume(run=run)
 
     @staticmethod
     def _get_args(cls, *args, **kwargs):

@@ -275,7 +275,7 @@ def test_circular_observer_only():
     assert_equals(rc['b'].exec_count, 4)
 
 
-def test_isolate_no_dependency_propagation():
+def test_isolation_works():
 
     rc = ReactiveContext()
     rc.new_value(x=1, y=10)
@@ -342,7 +342,7 @@ def test_block_isolation():
     assert_equals(rc['c3'].value, 3)
 
 
-def test_write_then_read_not_circular():
+def test_write_then_read():
 
     def b(env):
         env.a = env[:].a - 1
@@ -374,6 +374,58 @@ def test_children_parents():
     assert_equals(len(rc['a'].parents), 0)
     assert_equals(len(rc['b'].parents), 1)
     assert_equals(len(rc['b'].children), 0)
+
+
+def test_observer_suspending():
+
+    rc = ReactiveContext()
+    rc.new_value(v=1)
+    rc.new_expression('a', lambda env: env.v)
+    rc.new_observer('b', lambda env: env.a)
+
+    assert_raises(Exception, rc.suspend, 'v')
+    assert_raises(Exception, rc.suspend, 'a')
+    rc.suspend('b')
+    rc.run()
+    assert_equals(rc['a'].exec_count, 1)
+    assert_equals(rc['b'].exec_count, 1)
+
+    rc.resume('b')
+    rc.run()
+    assert_equals(rc['a'].exec_count, 1)
+    assert_equals(rc['b'].exec_count, 1)
+
+    rc.suspend('b')
+    assert_false(rc['b'].invalidated)
+    rc.set_value(v=2)
+    assert_true(rc['b'].invalidated)
+    assert_equals(rc['a'].exec_count, 1)
+    assert_equals(rc['b'].exec_count, 1)
+
+    rc['b'].resume()
+    rc.set_value(v=2.5)
+    rc['b'].suspend()
+    rc.run()
+    assert_equals(rc['a'].exec_count, 2)
+    assert_equals(rc['b'].exec_count, 2)
+
+    rc.set_value(v=3)
+    assert_equals(rc['a'].exec_count, 2)
+    assert_equals(rc['b'].exec_count, 2)
+
+    assert_true(rc['b'].invalidated)
+    rc.set_value(v=4)
+    rc['b'].resume()
+    rc.run()
+    assert_equals(rc['a'].exec_count, 3)
+    assert_equals(rc['b'].exec_count, 3)
+    assert_false(rc['b'].invalidated)
+
+    rc.suspend('b')
+    rc.set_value(v=5)
+    rc.resume('b', run=True)
+    assert_equals(rc['a'].exec_count, 4)
+    assert_equals(rc['b'].exec_count, 4)
 
 
 def test_log():
