@@ -308,6 +308,40 @@ def test_isolate_no_dependency_propagation():
     assert_equals(rc['d'].exec_count, 4)
 
 
+def test_block_isolation():
+
+    def c1(env):
+        with ~env:
+            return env.a + 1
+
+    def c2(env):
+        with env[...] as e:
+            return e.a + 1
+
+    def c3(env):
+        return env.a + 1
+
+    rc = ReactiveContext()
+    rc.new_value(a=1)
+    rc.new_observer(c1=c1, c2=c2, c3=c3)
+
+    rc.run()
+    assert_equals(rc['c1'].exec_count, 1)
+    assert_equals(rc['c1'].value, 2)
+    assert_equals(rc['c2'].exec_count, 1)
+    assert_equals(rc['c2'].value, 2)
+    assert_equals(rc['c3'].exec_count, 1)
+    assert_equals(rc['c3'].value, 2)
+
+    rc.set_value(a=2)
+    assert_equals(rc['c1'].exec_count, 1)
+    assert_equals(rc['c1'].value, 2)
+    assert_equals(rc['c2'].exec_count, 1)
+    assert_equals(rc['c2'].value, 2)
+    assert_equals(rc['c3'].exec_count, 2)
+    assert_equals(rc['c3'].value, 3)
+
+
 def test_write_then_read_not_circular():
 
     def b(env):

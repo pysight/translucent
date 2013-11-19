@@ -139,7 +139,12 @@ class ReactiveEnvironment(object):
 
     def __getitem__(self, key):
         if key == slice(None, None, None):
-            return self.__class__(self._context, True)
+            if not self._isolate:
+                return self.__class__(self._context, True)
+            else:
+                return self
+        elif key is Ellipsis:
+            return self._isolate_block()
         return self._context.get_value(key, self._isolate)
 
     def __setattr__(self, key, value):
@@ -153,6 +158,15 @@ class ReactiveEnvironment(object):
 
     def __contains__(self, key):
         return key in self._context
+
+    def __invert__(self):
+        return self._isolate_block()
+
+    @contextmanager
+    def _isolate_block(self):
+        self._isolate = True
+        yield self
+        self._isolate = False
 
 
 class ReactiveContext(object):
