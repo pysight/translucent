@@ -430,18 +430,50 @@ def test_observer_suspending():
 
 def test_safe_mode():
 
-    def b(env):
+    def b1(env):
         if len(env.a) > 0:
             env.a.pop()
+        return env.a
 
     rc = ReactiveContext(safe=True)
     rc.new_value(a=[1, 2, 3])
-    rc.new_expression(b=b)
+    rc.new_expression(b=b1)
     rc.new_observer('c', lambda env: env.b)
 
     rc.run()
     assert_equals(rc['b'].exec_count, 4)
     assert_equals(rc['c'].exec_count, 4)
+    assert_equals(len(rc['b'].value), 0)
+    assert_equals(len(rc['c'].value), 0)
+
+    rc.safe = False
+    rc.set_value(a=[1, 2, 3])
+    assert_equals(rc['b'].exec_count, 5)
+    assert_equals(rc['c'].exec_count, 5)
+    assert_equals(len(rc['b'].value), 2)
+    assert_equals(len(rc['c'].value), 2)
+
+    def b2(env):
+        env.b1.pop()
+        return env.a
+
+    rc = ReactiveContext(safe=True)
+    rc.new_value(a=[1, 2, 3])
+    rc.new_expression(b1=lambda env: list(env.a))
+    rc.new_expression(b2=b2)
+    rc.new_observer('c', lambda env: (env.b1, env.b2))
+
+    assert_raises(Exception, rc.run)
+
+    rc = ReactiveContext(safe=False)
+    rc.new_value(a=[1, 2, 3])
+    rc.new_expression(b1=lambda env: list(env.a))
+    rc.new_expression(b2=b2)
+    rc.new_observer('c', lambda env: (env.b1, env.b2))
+    rc.run()
+    assert_equals(rc['b1'].exec_count, 1)
+    assert_equals(rc['b2'].exec_count, 1)
+    assert_equals(rc['c'].exec_count, 1)
 
 
 def test_log():

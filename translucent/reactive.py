@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+__all__ = ('ReactiveValue', 'ReactiveExpression', 'ReactiveObserver', 'ReactiveContext')
+
 import inspect
 import re
 import sys
@@ -8,8 +10,6 @@ from collections import defaultdict
 from joblib import hashing
 
 from .utils import is_string
-
-__all__ = ('ReactiveValue', 'ReactiveExpression', 'ReactiveObserver', 'ReactiveContext')
 
 
 class UndefinedKey(Exception):
@@ -21,7 +21,7 @@ class UndefinedKey(Exception):
 
 class ReactiveObject(object):
 
-    __slots__ = ('name', 'value', 'hash', 'fn', 'invalidated', 'parents', 'children',
+    __slots__ = ('name', 'value', 'hash', 'func', 'invalidated', 'parents', 'children',
         'context', 'exec_count', 'suspended')
 
     def __init__(self, name):
@@ -31,7 +31,7 @@ class ReactiveObject(object):
         self.name = name
         self.value = None
         self.hash = hashing.hash(self.value)
-        self.fn = None
+        self.func = None
         self.invalidated = True
         self.parents = []
         self.children = []
@@ -80,13 +80,11 @@ class ReactiveValue(ReactiveObject):
     def set_value(self, new_value):
         with self.context.log_block('%s.set_value(%s)', self.name,
                 self.context._fmt_value(new_value)):
-            if self.context.safe:
-                new_hash = hashing.hash(new_value)
+            new_hash = hashing.hash(new_value)
             if self.value != new_value or (self.context.safe and self.hash != new_hash):
                 self.invalidate()
             self.value = new_value
-            if self.context.safe:
-                self.hash = new_hash
+            self.hash = new_hash
             self.context.flush()
 
     def get_value(self, isolate=False):
@@ -97,34 +95,34 @@ class ReactiveValue(ReactiveObject):
 
 class _ReactiveCallable(ReactiveObject):
 
-    def __init__(self, name, fn):
+    def __init__(self, name, func):
         super(_ReactiveCallable, self).__init__(name)
-        if not callable(fn):
-            raise Exception('fn in expression "%s" must be a callable' % name)
-        self.fn = fn
+        if not callable(func):
+            raise Exception('func in expression "%s" must be a callable' % name)
+        self.func = func
 
     def try_run(self, isolate=False):
         try:
-            self.context._push_callable(self)
+            self.context._push_running(self)
             self.invalidated = False
             with self.context.log_block('%s.run()', self.name):
-                self.value = self.fn(self.context.env)
+                self.value = self.func(self.context.env)
+                self.hash = hashing.hash(self.value)
                 if self.context.safe:
-                    self.hash = hashing.hash(self.value)
                     self.context._check_hash_integrity()
         except UndefinedKey as e:
             self.context.log('=> UndefinedKey')
             self.invalidated = True
             raise e
         finally:
-            self.context._pop_callable(self)
+            self.context._pop_running(self)
             self.exec_count += 1
 
 
 class ReactiveExpression(_ReactiveCallable):
 
-    def __init__(self, name, fn):
-        super(ReactiveExpression, self).__init__(name, fn)
+    def __init__(self, name, func):
+        super(ReactiveExpression, self).__init__(name, func)
 
     def get_value(self, isolate=False):
         if self.invalidated or self.context._is_running(self):
@@ -134,8 +132,8 @@ class ReactiveExpression(_ReactiveCallable):
 
 class ReactiveObserver(_ReactiveCallable):
 
-    def __init__(self, name, fn):
-        super(ReactiveObserver, self).__init__(name, fn)
+    def __init__(self, name, func):
+        super(ReactiveObserver, self).__init__(name, func)
 
     def run(self):
         try:
@@ -211,13 +209,13 @@ class ReactiveContext(object):
         self._pending = defaultdict(list)
         self._log_stream = None
         self._log_indent = 0
-        self._fmt_value = formatter or repr
         self._flush_queue = []
+        self._fmt_value = repr
 
         if log is True:
-            self.start_log()
+            self.start_log(formatter=formatter)
         elif log is not None:
-            self.start_log(log)
+            self.start_log(log, formatter=formatter)
 
     def new_value(self, *args, **kwargs):
         return self._new_object(ReactiveValue, *args, **kwargs)
@@ -229,18 +227,18 @@ class ReactiveContext(object):
         return self._new_object(ReactiveObserver, *args, **kwargs)
 
     def expression(self, name):
-        def decorator(fn):
-            return self.new_expression(name, fn)
+        def decorator(func):
+            return self.new_expression(name, func)
         return decorator
 
     def observer(self, name):
-        def decorator(fn):
-            return self.new_observer(name, fn)
+        def decorator(func):
+            return self.new_observer(name, func)
         return decorator
 
     def set_value(self, *args, **kwargs):
         auto_add = kwargs.pop('_auto_add', False)
-        for k, v in self._get_args(ReactiveValue, *args, **kwargs):
+        for k, v in self._get_args(*args, **kwargs):
             if auto_add and k not in self:
                 return self.new_value(k, v)
             obj = self[k]
@@ -267,15 +265,6 @@ class ReactiveContext(object):
         if not obj.is_observer():
             raise Exception('can only resume observers')
         obj.resume(run=run)
-
-    def __contains__(self, name):
-        return name in self._objects
-
-    def __getitem__(self, name):
-        return self._objects[name]
-
-    def __len__(self):
-        return len(self._objects)
 
     def start_log(self, stream=None, formatter=None):
         self._fmt_value = formatter or repr
@@ -327,22 +316,26 @@ class ReactiveContext(object):
         if self._flush_queue:
             self.flush()
 
-    def _get_caller(self):
-        for frame in inspect.stack():
-            caller = frame[0].f_locals.get('self', None)
-            if isinstance(caller, ReactiveObject):
-                return caller
-        return None
+    def __contains__(self, name):
+        return name in self._objects
+
+    def __getitem__(self, name):
+        return self._objects[name]
+
+    def __len__(self):
+        return len(self._objects)
 
     def _check_hash_integrity(self):
         if self.safe:
             for obj in self._objects.itervalues():
-                if hashing.hash(obj.value) != obj.hash:
-                    if obj.is_value():
+                if obj.is_value():
+                    if hashing.hash(obj.value) != obj.hash:
                         self.log('outdated hash detected for %s', obj.name)
                         obj.set_value(obj.value)
-                    else:
-                        raise Exception('non-value object value mutated')
+            for obj in self._objects.itervalues():
+                if not obj.is_value():
+                    if not obj.invalidated and hashing.hash(obj.value) != obj.hash:
+                        raise Exception('non-value object mutated: %s' % obj.name)
 
     def _register(self, obj):
         self._objects[obj.name] = obj
@@ -353,7 +346,7 @@ class ReactiveContext(object):
 
     def _new_object(self, cls, *args, **kwargs):
         result = []
-        for k, v in self._get_args(cls, *args, **kwargs):
+        for k, v in self._get_args(*args, **kwargs):
             result.append(self._register(cls(k, v)))
         if len(result) is 1:
             return result[0]
@@ -362,25 +355,29 @@ class ReactiveContext(object):
         if observer not in self._pending[value_key]:
             self._pending[value_key].append(observer)
 
-    def _push_callable(self, obj):
+    def _push_running(self, obj):
         self._running[0:0] = [obj]
 
-    def _pop_callable(self, obj):
+    def _pop_running(self, obj):
         self._running.remove(obj)
 
     def _is_running(self, obj):
         return obj in self._running
 
     @staticmethod
-    def _get_args(cls, *args, **kwargs):
-        if issubclass(cls, (ReactiveExpression, ReactiveObserver)):
-            kind = 'fn/value'
-        else:
-            kind = 'name/value'
+    def _get_caller():
+        for frame in inspect.stack():
+            caller = frame[0].f_locals.get('self', None)
+            if isinstance(caller, ReactiveObject):
+                return caller
+        return None
+
+    @staticmethod
+    def _get_args(*args, **kwargs):
         if not args and not kwargs:
-            raise Exception('at least one %s pair or kwargs must be provided' % kind)
+            raise Exception('at least one pair or kwargs must be provided')
         if len(args) % 2:
-            raise Exception('args length must be divisible by 2 (list of %s pairs)' % kind)
+            raise Exception('args length must be divisible by 2 (list of pairs)')
         duplicates = sorted(set(args[0::2]) & set(kwargs.iterkeys()))
         if duplicates:
             raise Exception('duplicate arguments passed: %r' % duplicates)
