@@ -22,7 +22,7 @@ setup(
         'flake8==2.1.0',
         'nose==1.3.0',
         'coverage==3.7',
-        'blinker==1.3'
+        'joblib==0.7.1'
     ],
     classifiers=[
         'Development Status :: 1 - Planning',

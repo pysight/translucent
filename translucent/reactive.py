@@ -5,6 +5,7 @@ import re
 import sys
 from contextlib import contextmanager
 from collections import defaultdict
+from joblib import hashing
 
 from .utils import is_string
 
@@ -23,6 +24,7 @@ class ReactiveObject(object):
             raise Exception('invalid reactive object name: "%s"' % name)
         self.name = name
         self.value = None
+        self.hash = hashing.hash(self.value)
         self.fn = None
         self.invalidated = True
         self.parents = []
@@ -67,13 +69,18 @@ class ReactiveValue(ReactiveObject):
     def __init__(self, name, value):
         super(ReactiveValue, self).__init__(name)
         self.value = value
+        self.hash = hashing.hash(value)
 
     def set_value(self, new_value):
         with self.context.log_block('%s.set_value(%s)', self.name,
                 self.context.fmt_value(new_value)):
-            if self.value != new_value:
+            if self.context.safe:
+                new_hash = hashing.hash(new_value)
+            if self.value != new_value or (self.context.safe and self.hash != new_hash):
                 self.invalidate()
             self.value = new_value
+            if self.context.safe:
+                self.hash = new_hash
             self.context.flush()
 
     def get_value(self, isolate=False):
@@ -82,51 +89,53 @@ class ReactiveValue(ReactiveObject):
         return self.value
 
 
-class ReactiveExpression(ReactiveObject):
+class _ReactiveCallable(ReactiveObject):
 
     def __init__(self, name, fn):
-        super(ReactiveExpression, self).__init__(name)
+        super(_ReactiveCallable, self).__init__(name)
         if not callable(fn):
             raise Exception('fn in expression "%s" must be a callable' % name)
         self.fn = fn
 
-    def get_value(self, isolate=False):
-        if self.invalidated or self in self.context.running:
-            try:
-                self.context.running[0:0] = [self]
-                self.invalidated = False
-                with self.context.log_block('%s.run()', self.name):
-                    self.value = self.fn(self.context.env)
-            except UndefinedKey as e:
-                self.context.log('=> UndefinedKey')
-                self.invalidated = True
-                raise e
-            finally:
-                self.context.running.remove(self)
-                self.exec_count += 1
-        return self.value
-
-
-class ReactiveObserver(ReactiveObject):
-
-    def __init__(self, name, fn):
-        super(ReactiveObserver, self).__init__(name)
-        if not callable(fn):
-            raise Exception('fn in expression "%s" must be a callable' % name)
-        self.fn = fn
-
-    def run(self, *args):
+    def try_run(self, isolate=False):
         try:
             self.context.running[0:0] = [self]
             self.invalidated = False
             with self.context.log_block('%s.run()', self.name):
                 self.value = self.fn(self.context.env)
+                if self.context.safe:
+                    self.hash = hashing.hash(self.value)
+                    self.context._check_hash_integrity()
         except UndefinedKey as e:
             self.context.log('=> UndefinedKey')
-            self.context.pending[e.name].append(self)
+            self.invalidated = True
+            raise e
         finally:
             self.context.running.remove(self)
             self.exec_count += 1
+
+
+class ReactiveExpression(_ReactiveCallable):
+
+    def __init__(self, name, fn):
+        super(ReactiveExpression, self).__init__(name, fn)
+
+    def get_value(self, isolate=False):
+        if self.invalidated or self in self.context.running:
+            self.try_run(isolate=isolate)
+        return self.value
+
+
+class ReactiveObserver(_ReactiveCallable):
+
+    def __init__(self, name, fn):
+        super(ReactiveObserver, self).__init__(name, fn)
+
+    def run(self, *args):
+        try:
+            self.try_run()
+        except UndefinedKey as e:
+            self.context.pending[e.name].append(self)
 
     def suspend(self):
         self.context.log('%s.suspend()', self.name)
@@ -184,7 +193,7 @@ class ReactiveEnvironment(object):
 
 class ReactiveContext(object):
 
-    def __init__(self, log=None, formatter=None):
+    def __init__(self, safe=True, log=None, formatter=None):
         self.env = ReactiveEnvironment(self)
         self.objects = {}
         self.pending = defaultdict(list)
@@ -193,6 +202,7 @@ class ReactiveContext(object):
         self.log_indent = 0
         self.fmt_value = formatter or repr
         self.running = []
+        self.safe = safe
         if log is True:
             self.start_log()
         elif log is not None:
@@ -307,6 +317,17 @@ class ReactiveContext(object):
         result = dict(zip(args[0::2], args[1::2]))
         result.update(kwargs)
         return result.items()
+
+    def _check_hash_integrity(self):
+        if self.safe:
+            for name in self.objects:
+                obj = self.objects[name]
+                if hashing.hash(obj.value) != obj.hash:
+                    if obj.is_value():
+                        self.log('outdated hash detected for %s', name)
+                        obj.set_value(obj.value)
+                    else:
+                        raise Exception('non-value object value mutated')
 
     def _register(self, obj):
         self.objects[obj.name] = obj

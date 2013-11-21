@@ -428,6 +428,23 @@ def test_observer_suspending():
     assert_equals(rc['b'].exec_count, 4)
 
 
+def test_safe_mode():
+
+    def c(env):
+        if len(env.b) > 0:
+            env.a += 1
+            env.b.pop()
+
+    rc = ReactiveContext(safe=True)
+    rc.new_value(a=0, b=[1, 2, 3])
+    rc.new_expression(c=c)
+    rc.new_observer('d', lambda env: env.c)
+
+    rc.run()
+    assert_equals(rc['c'].exec_count, 4)
+    assert_equals(rc['d'].exec_count, 4)
+
+
 def test_log():
 
     buf = StringIO()
