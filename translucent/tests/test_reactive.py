@@ -449,13 +449,13 @@ def test_log():
     buf = StringIO()
 
     rc = ReactiveContext(log=buf)
-    assert_equals(rc.log_stream, buf)
+    assert_equals(rc._log_stream, buf)
 
     rc.stop_log()
-    assert_equals(rc.log_stream, None)
+    assert_equals(rc._log_stream, None)
 
     rc.start_log()
-    assert_equals(rc.log_stream, sys.stdout)
+    assert_equals(rc._log_stream, sys.stdout)
 
     rc.start_log(buf)
     rc.log('a %r %d', [1], 2)
@@ -483,13 +483,13 @@ def test_log():
     assert_equals(buf.getvalue(), 'a\nb\n  c\nd\n')
 
     buf.truncate(0)
-    rc.log('%s %s', rc.fmt_value([1, 2]), rc.fmt_value({1: 2}))
+    rc.log('%s %s', rc._fmt_value([1, 2]), rc._fmt_value({1: 2}))
     assert_equals(buf.getvalue(), '[1, 2] {1: 2}\n')
 
     buf.truncate(0)
     formatter = lambda x: 'x' if isinstance(x, dict) else x
     rc.start_log(buf, formatter)
-    rc.log('%s %s', rc.fmt_value([1, 2]), rc.fmt_value({1: 2}))
+    rc.log('%s %s', rc._fmt_value([1, 2]), rc._fmt_value({1: 2}))
     assert_equals(buf.getvalue(), '[1, 2] x\n')
 
     buf.truncate(0)

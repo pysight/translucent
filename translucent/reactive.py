@@ -9,10 +9,13 @@ from joblib import hashing
 
 from .utils import is_string
 
+__all__ = ('ReactiveValue', 'ReactiveExpression', 'ReactiveObserver', 'ReactiveContext')
+
 
 class UndefinedKey(Exception):
 
     def __init__(self, name=None):
+        super(UndefinedKey, self).__init__()
         self.name = name
 
 
@@ -39,9 +42,9 @@ class ReactiveObject(object):
     def invalidate(self):
         self.invalidated = True
         if self.is_observer() and not self.suspended:
-            if self not in self.context.flush_queue:
+            if self not in self.context._flush_queue:
                 self.context.log('flush_queue.append(%s)', self.name)
-                self.context.flush_queue.append(self)
+                self.context._flush_queue.append(self)
             else:
                 self.context.log('%s in flush_queue', self.name)
         with self.context.log_block('%s.invalidate()', self.name):
@@ -76,7 +79,7 @@ class ReactiveValue(ReactiveObject):
 
     def set_value(self, new_value):
         with self.context.log_block('%s.set_value(%s)', self.name,
-                self.context.fmt_value(new_value)):
+                self.context._fmt_value(new_value)):
             if self.context.safe:
                 new_hash = hashing.hash(new_value)
             if self.value != new_value or (self.context.safe and self.hash != new_hash):
@@ -102,7 +105,7 @@ class _ReactiveCallable(ReactiveObject):
 
     def try_run(self, isolate=False):
         try:
-            self.context.running[0:0] = [self]
+            self.context._push_callable(self)
             self.invalidated = False
             with self.context.log_block('%s.run()', self.name):
                 self.value = self.fn(self.context.env)
@@ -114,7 +117,7 @@ class _ReactiveCallable(ReactiveObject):
             self.invalidated = True
             raise e
         finally:
-            self.context.running.remove(self)
+            self.context._pop_callable(self)
             self.exec_count += 1
 
 
@@ -124,7 +127,7 @@ class ReactiveExpression(_ReactiveCallable):
         super(ReactiveExpression, self).__init__(name, fn)
 
     def get_value(self, isolate=False):
-        if self.invalidated or self in self.context.running:
+        if self.invalidated or self.context._is_running(self):
             self.try_run(isolate=isolate)
         return self.value
 
@@ -134,11 +137,11 @@ class ReactiveObserver(_ReactiveCallable):
     def __init__(self, name, fn):
         super(ReactiveObserver, self).__init__(name, fn)
 
-    def run(self, *args):
+    def run(self):
         try:
             self.try_run()
         except UndefinedKey as e:
-            self.context.pending[e.name].append(self)
+            self.context._register_pending(e.name, self)
 
     def suspend(self):
         self.context.log('%s.suspend()', self.name)
@@ -196,16 +199,21 @@ class ReactiveEnvironment(object):
 
 class ReactiveContext(object):
 
+    __slots__ = ('safe', 'env', '_objects', '_running', '_pending', '_log_stream',
+        '_log_indent', '_fmt_value', '_flush_queue')
+
     def __init__(self, safe=True, log=None, formatter=None):
-        self.env = ReactiveEnvironment(self)
-        self._objects = {}
-        self.pending = defaultdict(list)
-        self.flush_queue = []
-        self.log_stream = None
-        self.log_indent = 0
-        self.fmt_value = formatter or repr
-        self.running = []
         self.safe = safe
+        self.env = ReactiveEnvironment(self)
+
+        self._objects = {}
+        self._running = []
+        self._pending = defaultdict(list)
+        self._log_stream = None
+        self._log_indent = 0
+        self._fmt_value = formatter or repr
+        self._flush_queue = []
+
         if log is True:
             self.start_log()
         elif log is not None:
@@ -238,7 +246,7 @@ class ReactiveContext(object):
             obj = self[k]
             if not obj.is_value():
                 raise Exception('"%s" is not a reactive value' % k)
-            with self.log_block('set_value(%s, %r)', k, self.fmt_value(v)):
+            with self.log_block('set_value(%s, %r)', k, self._fmt_value(v)):
                 obj.set_value(v)
 
     def run(self):
@@ -266,28 +274,31 @@ class ReactiveContext(object):
     def __getitem__(self, name):
         return self._objects[name]
 
+    def __len__(self):
+        return len(self._objects)
+
     def start_log(self, stream=None, formatter=None):
-        self.fmt_value = formatter or repr
-        self.log_stream = stream or sys.stdout
+        self._fmt_value = formatter or repr
+        self._log_stream = stream or sys.stdout
 
     def stop_log(self):
-        self.log_stream = None
+        self._log_stream = None
 
     def log(self, fmt, *args):
-        if self.log_stream is not None:
-            self.log_stream.write('  ' * self.log_indent + fmt % args + '\n')
+        if self._log_stream is not None:
+            self._log_stream.write('  ' * self._log_indent + fmt % args + '\n')
 
     @contextmanager
     def log_block(self, fmt=None, *args):
         if fmt is not None:
             self.log(fmt, *args)
-        self.log_indent += 1
+        self._log_indent += 1
         try:
             yield
         except Exception as e:
             raise e
         finally:
-            self.log_indent -= 1
+            self._log_indent -= 1
 
     def get_value(self, name, isolate=False):
         if name not in self:
@@ -301,19 +312,19 @@ class ReactiveContext(object):
                 caller.add_parent(obj)
         with self.log_block('get_value(%s)%s', name, ' [isolated]' * isolate):
             value = obj.get_value(isolate=True)
-        self.log('=> %s', self.fmt_value(value))
+        self.log('=> %s', self._fmt_value(value))
         return value
 
     def flush(self):
-        if self.running:
+        if self._running:
             self.log('no flush (already running)')
             return
         with self.log_block('flush()'):
-            while self.flush_queue:
-                obj = self.flush_queue.pop()
+            while self._flush_queue:
+                obj = self._flush_queue.pop()
                 with self.log_block('flush_queue.pop(%s).run()', obj.name):
                     obj.run()
-        if self.flush_queue:
+        if self._flush_queue:
             self.flush()
 
     def _get_caller(self):
@@ -336,8 +347,8 @@ class ReactiveContext(object):
     def _register(self, obj):
         self._objects[obj.name] = obj
         obj.context = self
-        while self.pending[obj.name]:
-            self.pending[obj.name].pop().run()
+        while self._pending[obj.name]:
+            self._pending[obj.name].pop().run()
         return obj
 
     def _new_object(self, cls, *args, **kwargs):
@@ -346,6 +357,19 @@ class ReactiveContext(object):
             result.append(self._register(cls(k, v)))
         if len(result) is 1:
             return result[0]
+
+    def _register_pending(self, value_key, observer):
+        if observer not in self._pending[value_key]:
+            self._pending[value_key].append(observer)
+
+    def _push_callable(self, obj):
+        self._running[0:0] = [obj]
+
+    def _pop_callable(self, obj):
+        self._running.remove(obj)
+
+    def _is_running(self, obj):
+        return obj in self._running
 
     @staticmethod
     def _get_args(cls, *args, **kwargs):
