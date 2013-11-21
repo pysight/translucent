@@ -18,6 +18,9 @@ class UndefinedKey(Exception):
 
 class ReactiveObject(object):
 
+    __slots__ = ('name', 'value', 'hash', 'fn', 'invalidated', 'parents', 'children',
+        'context', 'exec_count', 'suspended')
+
     def __init__(self, name):
         name_regex = r'^((_[_]+)|[a-zA-Z])[_a-zA-Z0-9]*$'
         if not is_string(name) or not re.match(name_regex, name):
@@ -195,7 +198,7 @@ class ReactiveContext(object):
 
     def __init__(self, safe=True, log=None, formatter=None):
         self.env = ReactiveEnvironment(self)
-        self.objects = {}
+        self._objects = {}
         self.pending = defaultdict(list)
         self.flush_queue = []
         self.log_stream = None
@@ -207,6 +210,61 @@ class ReactiveContext(object):
             self.start_log()
         elif log is not None:
             self.start_log(log)
+
+    def new_value(self, *args, **kwargs):
+        return self._new_object(ReactiveValue, *args, **kwargs)
+
+    def new_expression(self, *args, **kwargs):
+        return self._new_object(ReactiveExpression, *args, **kwargs)
+
+    def new_observer(self, *args, **kwargs):
+        return self._new_object(ReactiveObserver, *args, **kwargs)
+
+    def expression(self, name):
+        def decorator(fn):
+            return self.new_expression(name, fn)
+        return decorator
+
+    def observer(self, name):
+        def decorator(fn):
+            return self.new_observer(name, fn)
+        return decorator
+
+    def set_value(self, *args, **kwargs):
+        auto_add = kwargs.pop('_auto_add', False)
+        for k, v in self._get_args(ReactiveValue, *args, **kwargs):
+            if auto_add and k not in self:
+                return self.new_value(k, v)
+            obj = self[k]
+            if not obj.is_value():
+                raise Exception('"%s" is not a reactive value' % k)
+            with self.log_block('set_value(%s, %r)', k, self.fmt_value(v)):
+                obj.set_value(v)
+
+    def run(self):
+        with self.log_block('run()'):
+            for obj in self._objects.itervalues():
+                if obj.is_observer() and obj.invalidated:
+                    obj.run()
+            self.flush()
+
+    def suspend(self, key):
+        obj = self[key]
+        if not obj.is_observer():
+            raise Exception('can only suspend observers')
+        obj.suspend()
+
+    def resume(self, key, run=False):
+        obj = self[key]
+        if not obj.is_observer():
+            raise Exception('can only resume observers')
+        obj.resume(run=run)
+
+    def __contains__(self, name):
+        return name in self._objects
+
+    def __getitem__(self, name):
+        return self._objects[name]
 
     def start_log(self, stream=None, formatter=None):
         self.fmt_value = formatter or repr
@@ -231,44 +289,20 @@ class ReactiveContext(object):
         finally:
             self.log_indent -= 1
 
-    def __contains__(self, name):
-        return name in self.objects
-
-    def __getitem__(self, name):
-        return self.objects[name]
-
-    def get_caller(self):
-        for frame in inspect.stack():
-            caller = frame[0].f_locals.get('self', None)
-            if isinstance(caller, ReactiveObject):
-                return caller
-        return None
-
     def get_value(self, name, isolate=False):
-        if name not in self.objects:
+        if name not in self:
             raise UndefinedKey(name)
-        obj = self.objects[name]
+        obj = self[name]
         if obj.is_observer():
             raise Exception('cannot get the value of observer "%s"' % name)
         if not isolate:
-            caller = self.get_caller()
+            caller = self._get_caller()
             if caller is not None and caller != obj:
                 caller.add_parent(obj)
         with self.log_block('get_value(%s)%s', name, ' [isolated]' * isolate):
             value = obj.get_value(isolate=True)
         self.log('=> %s', self.fmt_value(value))
         return value
-
-    def set_value(self, *args, **kwargs):
-        auto_add = kwargs.pop('_auto_add', False)
-        for k, v in self._get_args(ReactiveValue, *args, **kwargs):
-            if auto_add and k not in self.objects:
-                return self.new_value(k, v)
-            obj = self.objects[k]
-            if not obj.is_value():
-                raise Exception('"%s" is not a reactive value' % k)
-            with self.log_block('set_value(%s, %r)', k, self.fmt_value(v)):
-                obj.set_value(v)
 
     def flush(self):
         if self.running:
@@ -282,24 +316,36 @@ class ReactiveContext(object):
         if self.flush_queue:
             self.flush()
 
-    def run(self):
-        with self.log_block('run()'):
-            for obj in self.objects.itervalues():
-                if obj.is_observer() and obj.invalidated:
-                    obj.run()
-            self.flush()
+    def _get_caller(self):
+        for frame in inspect.stack():
+            caller = frame[0].f_locals.get('self', None)
+            if isinstance(caller, ReactiveObject):
+                return caller
+        return None
 
-    def suspend(self, key):
-        obj = self.objects[key]
-        if not obj.is_observer():
-            raise Exception('can only suspend observers')
-        obj.suspend()
+    def _check_hash_integrity(self):
+        if self.safe:
+            for obj in self._objects.itervalues():
+                if hashing.hash(obj.value) != obj.hash:
+                    if obj.is_value():
+                        self.log('outdated hash detected for %s', obj.name)
+                        obj.set_value(obj.value)
+                    else:
+                        raise Exception('non-value object value mutated')
 
-    def resume(self, key, run=False):
-        obj = self.objects[key]
-        if not obj.is_observer():
-            raise Exception('can only resume observers')
-        obj.resume(run=run)
+    def _register(self, obj):
+        self._objects[obj.name] = obj
+        obj.context = self
+        while self.pending[obj.name]:
+            self.pending[obj.name].pop().run()
+        return obj
+
+    def _new_object(self, cls, *args, **kwargs):
+        result = []
+        for k, v in self._get_args(cls, *args, **kwargs):
+            result.append(self._register(cls(k, v)))
+        if len(result) is 1:
+            return result[0]
 
     @staticmethod
     def _get_args(cls, *args, **kwargs):
@@ -317,47 +363,3 @@ class ReactiveContext(object):
         result = dict(zip(args[0::2], args[1::2]))
         result.update(kwargs)
         return result.items()
-
-    def _check_hash_integrity(self):
-        if self.safe:
-            for name in self.objects:
-                obj = self.objects[name]
-                if hashing.hash(obj.value) != obj.hash:
-                    if obj.is_value():
-                        self.log('outdated hash detected for %s', name)
-                        obj.set_value(obj.value)
-                    else:
-                        raise Exception('non-value object value mutated')
-
-    def _register(self, obj):
-        self.objects[obj.name] = obj
-        obj.context = self
-        while self.pending[obj.name]:
-            self.pending[obj.name].pop().run()
-        return obj
-
-    def _new_object(self, cls, *args, **kwargs):
-        result = []
-        for k, v in self._get_args(cls, *args, **kwargs):
-            result.append(self._register(cls(k, v)))
-        if len(result) is 1:
-            return result[0]
-
-    def new_value(self, *args, **kwargs):
-        return self._new_object(ReactiveValue, *args, **kwargs)
-
-    def new_expression(self, *args, **kwargs):
-        return self._new_object(ReactiveExpression, *args, **kwargs)
-
-    def new_observer(self, *args, **kwargs):
-        return self._new_object(ReactiveObserver, *args, **kwargs)
-
-    def expression(self, name):
-        def decorator(fn):
-            return self.new_expression(name, fn)
-        return decorator
-
-    def observer(self, name):
-        def decorator(fn):
-            return self.new_observer(name, fn)
-        return decorator
