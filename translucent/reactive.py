@@ -123,11 +123,41 @@ class ReactiveExpression(_ReactiveCallable):
 
     def __init__(self, name, func):
         super(ReactiveExpression, self).__init__(name, func)
+        self.cached = False
+        self.cache = {}
+        self.current_cache = {}
 
     def get_value(self, isolate=False):
         if self.invalidated or self.context._is_running(self):
+            if self.cached:
+                env_hash = frozenset((name, obj.hash)
+                    for name, obj in self.context._objects.iteritems()
+                    if not obj.is_observer())
+                # env = [(name, obj.value)
+                #     for name, obj in self.context._objects.iteritems()
+                #     if not obj.is_observer()]
+                # self.context.log('env: %r', env)
+                for h in self.cache:
+                    if h <= env_hash:
+                        value = self.cache[h]
+                        self.context.log('retrieving value from cache: %s -> %s',
+                            self.name, self.context._fmt_value(value))
+                        self.value = value
+                        for name, _ in h:
+                            self.add_parent(self.context[name])
+                        return self.value
+                self.current_cache = {}
             self.try_run(isolate=isolate)
+            key = frozenset(self.current_cache.items())
+            if key not in self.cache:
+                self.context.log('updating cache: %s -> %s',
+                    self.name, self.context._fmt_value(self.value))
+                self.cache[key] = self.value
         return self.value
+
+    def update_cache(self, name, value):
+        if name not in self.current_cache:
+            self.current_cache[name] = hashing.hash(value)
 
 
 class ReactiveObserver(_ReactiveCallable):
@@ -247,6 +277,38 @@ class ReactiveContext(object):
             with self.log_block('set_value(%s, %r)', k, self._fmt_value(v)):
                 obj.set_value(v)
 
+    def get_value(self, name, isolate=False):
+        if name not in self:
+            raise UndefinedKey(name)
+        obj = self[name]
+        if obj.is_observer():
+            raise Exception('cannot get the value of observer "%s"' % name)
+        if not isolate:
+            caller = self._get_caller()
+            if caller is not None:
+                if caller != obj:
+                    caller.add_parent(obj)
+                else:
+                    self.log('[called from outside the context]')
+        with self.log_block('get_value(%s)%s', name, ' [isolated]' * isolate):
+            value = obj.get_value(isolate=True)
+        if not isolate and caller and caller.is_expression() and caller.cached:
+            caller.update_cache(name, value)
+        self.log('=> %s', self._fmt_value(value))
+        return value
+
+    def flush(self):
+        if self._running:
+            self.log('no flush (already running)')
+            return
+        with self.log_block('flush()'):
+            while self._flush_queue:
+                obj = self._flush_queue.pop()
+                with self.log_block('flush_queue.pop(%s).run()', obj.name):
+                    obj.run()
+        if self._flush_queue:
+            self.flush()
+
     def run(self):
         with self.log_block('run()'):
             for obj in self._objects.itervalues():
@@ -277,6 +339,16 @@ class ReactiveContext(object):
         if self._log_stream is not None:
             self._log_stream.write('  ' * self._log_indent + fmt % args + '\n')
 
+    def cache(self, expr, cached=True):
+        if isinstance(expr, ReactiveExpression):
+            expr.cached = cached
+        else:
+            obj = self[expr]
+            if obj.is_expression():
+                obj.cached = cached
+            else:
+                raise Exception('can only cache reactive expressions')
+
     @contextmanager
     def log_block(self, fmt=None, *args):
         if fmt is not None:
@@ -288,33 +360,6 @@ class ReactiveContext(object):
             raise e
         finally:
             self._log_indent -= 1
-
-    def get_value(self, name, isolate=False):
-        if name not in self:
-            raise UndefinedKey(name)
-        obj = self[name]
-        if obj.is_observer():
-            raise Exception('cannot get the value of observer "%s"' % name)
-        if not isolate:
-            caller = self._get_caller()
-            if caller is not None and caller != obj:
-                caller.add_parent(obj)
-        with self.log_block('get_value(%s)%s', name, ' [isolated]' * isolate):
-            value = obj.get_value(isolate=True)
-        self.log('=> %s', self._fmt_value(value))
-        return value
-
-    def flush(self):
-        if self._running:
-            self.log('no flush (already running)')
-            return
-        with self.log_block('flush()'):
-            while self._flush_queue:
-                obj = self._flush_queue.pop()
-                with self.log_block('flush_queue.pop(%s).run()', obj.name):
-                    obj.run()
-        if self._flush_queue:
-            self.flush()
 
     def __contains__(self, name):
         return name in self._objects

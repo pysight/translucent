@@ -476,6 +476,59 @@ def test_safe_mode():
     assert_equals(rc['c'].exec_count, 1)
 
 
+def test_cache_and_safe_mode():
+
+    def b1(env):
+        if len(env.a) > 0:
+            env.a.pop()
+        return env.a
+
+    rc = ReactiveContext(safe=True)
+    rc.start_log()
+    rc.new_value(a=[1, 2, 3])
+    rc.new_expression(b=b1)
+    rc.cache('b')
+    rc.new_observer('c', lambda env: env.b)
+
+    rc.run()
+    assert_equals(rc['b'].exec_count, 4)
+    assert_equals(rc['c'].exec_count, 4)
+    assert_equals(len(rc['b'].value), 0)
+    assert_equals(len(rc['c'].value), 0)
+
+    rc.set_value(a=[1, 2, 3])
+    assert_equals(rc['b'].exec_count, 4)
+    assert_equals(rc['c'].exec_count, 5)
+    assert_equals(len(rc['b'].value), 0)
+    assert_equals(len(rc['c'].value), 0)
+
+    rc.set_value(a=[1, 2])
+    assert_equals(rc['b'].exec_count, 4)
+    assert_equals(rc['c'].exec_count, 6)
+    assert_equals(len(rc['b'].value), 0)
+    assert_equals(len(rc['c'].value), 0)
+
+    rc.safe = False
+
+    rc.set_value(a=[1, 2, 3])
+    assert_equals(rc['b'].exec_count, 4)
+    assert_equals(rc['c'].exec_count, 7)
+    assert_equals(len(rc['b'].value), 0)
+    assert_equals(len(rc['c'].value), 0)
+
+    rc.set_value(a=[1])
+    assert_equals(rc['b'].exec_count, 4)
+    assert_equals(rc['c'].exec_count, 8)
+    assert_equals(len(rc['b'].value), 0)
+    assert_equals(len(rc['c'].value), 0)
+
+    rc.set_value(a=[10, 20])
+    assert_equals(rc['b'].exec_count, 5)
+    assert_equals(rc['c'].exec_count, 9)
+    assert_equals(len(rc['b'].value), 1)
+    assert_equals(len(rc['c'].value), 1)
+
+
 def test_log():
 
     buf = StringIO()
