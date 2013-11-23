@@ -28,7 +28,7 @@ class UndefinedKey(Exception):
 class ReactiveObject(object):
 
     __slots__ = ('name', 'value', 'hash', 'func', 'invalidated', 'parents', 'children',
-        'context', 'exec_count', 'suspended', 'accessed')
+        'context', 'exec_count', 'suspended')
 
     def __init__(self, name):
         name_regex = r'^((_[_]+)|[a-zA-Z])[_a-zA-Z0-9]*$'
@@ -113,12 +113,10 @@ class _ReactiveCallable(ReactiveObject):
             self.context._push_call_stack(self)
             self.invalidated = False
             with self.context.log_block('%s.run()', self.name):
-                self.accessed[0:0] = [[]]
                 self.value = self.func(self.context.env)
-                accessed = self.accessed.pop()
                 self.hash = _fast_hash(self.value)
-                if self.context.safe and accessed:
-                    self.context._check_hash_integrity(accessed)
+                if self.context.safe and self.parents:
+                    self.context._check_hash_integrity(self.parents)
         except UndefinedKey as e:
             self.context.log('=> UndefinedKey')
             self.invalidated = True
@@ -142,10 +140,6 @@ class ReactiveExpression(_ReactiveCallable):
                 env_hash = frozenset((name, obj.hash)
                     for name, obj in self.context._objects.iteritems()
                     if not obj.is_observer())
-                # env = [(name, obj.value)
-                #     for name, obj in self.context._objects.iteritems()
-                #     if not obj.is_observer()]
-                # self.context.log('env: %r', env)
                 for h in self.cache:
                     if h <= env_hash:
                         value = self.cache[h]
@@ -295,8 +289,6 @@ class ReactiveContext(object):
         if not isolate:
             caller = self._get_caller()
             if caller is not None:
-                if obj not in caller.accessed[0]:
-                    caller.accessed[0].append(obj)
                 if caller != obj:
                     caller.add_parent(obj)
                 else:
