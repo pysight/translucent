@@ -28,7 +28,7 @@ class UndefinedKey(Exception):
 class ReactiveObject(object):
 
     __slots__ = ('name', 'value', 'hash', 'func', 'invalidated', 'parents', 'children',
-        'context', 'exec_count', 'suspended')
+        'context', 'exec_count', 'suspended', 'accessed')
 
     def __init__(self, name):
         name_regex = r'^((_[_]+)|[a-zA-Z])[_a-zA-Z0-9]*$'
@@ -44,6 +44,7 @@ class ReactiveObject(object):
         self.context = None
         self.exec_count = 0
         self.suspended = False
+        self.accessed = []
 
     def invalidate(self):
         self.invalidated = True
@@ -112,10 +113,12 @@ class _ReactiveCallable(ReactiveObject):
             self.context._push_call_stack(self)
             self.invalidated = False
             with self.context.log_block('%s.run()', self.name):
+                self.accessed[0:0] = [[]]
                 self.value = self.func(self.context.env)
+                accessed = self.accessed.pop()
                 self.hash = _fast_hash(self.value)
-                if self.context.safe:
-                    self.context._check_hash_integrity()
+                if self.context.safe and accessed:
+                    self.context._check_hash_integrity(accessed)
         except UndefinedKey as e:
             self.context.log('=> UndefinedKey')
             self.invalidated = True
@@ -292,6 +295,8 @@ class ReactiveContext(object):
         if not isolate:
             caller = self._get_caller()
             if caller is not None:
+                if obj not in caller.accessed[0]:
+                    caller.accessed[0].append(obj)
                 if caller != obj:
                     caller.add_parent(obj)
                 else:
@@ -381,14 +386,15 @@ class ReactiveContext(object):
     def __len__(self):
         return len(self._objects)
 
-    def _check_hash_integrity(self):
+    def _check_hash_integrity(self, accessed=None):
         if self.safe:
-            for obj in self._objects.itervalues():
+            objects = accessed or self._objects.values()
+            for obj in objects:
                 if obj.is_value():
                     if _fast_hash(obj.value) != obj.hash:
                         self.log('outdated hash detected for %s', obj.name)
                         obj.set_value(obj.value)
-            for obj in self._objects.itervalues():
+            for obj in objects:
                 if not obj.is_value():
                     if not obj.invalidated and _fast_hash(obj.value) != obj.hash:
                         raise Exception('non-value object mutated: %s' % obj.name)
