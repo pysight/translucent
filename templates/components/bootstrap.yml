@@ -37,7 +37,7 @@ navlist:
         <ul class="nav nav-stacked">
             <li ng-repeat="nav_item in nav_items">
                 <a href="#{{ nav_item.id }}">
-                    <span ng-bind-html-unsafe="nav_item.text"></span>
+                    <span ng-bind-html="nav_item.text|unsafe"></span>
                 </a>
             </li>
         </ul>
@@ -132,14 +132,14 @@ select:
             values: $bool
             default: true
         - init:
-            values: $none | $string | $number
-            default: $none
+            values: $string | $number | $none
+            default: ~
     template: |
         <div class="form-group">
             {% if args.label %}
                 <label for="{{ args.id }}">{{ args.label }}</label>
             {% endif %}
-            {% set ng = args.options is not sequence and args.options is not mapping %}
+            {% set ng = args.options is string %}
             {% set init_value = '' if args.init is none else "env.%s=%s;"|format(
                 args.id, args.init|to_json) %}
             {% set init_options = '' if ng else "options_%s=%s;"|format(
@@ -202,3 +202,28 @@ icon:
             '2x': 'fa-2x', '3x': 'fa-3x', '4x': 'fa-4x', '5x': 'fa-5x'},
             fixed={True: 'fa-fw', False: ''}, spin={True: 'fa-spin', False: ''}) }}>
         </i>
+
+dataframe:
+    output: true
+    args:
+        - id: 
+            values: $id
+    template: |
+        <table class="table table-hover table-condensed table-striped">
+            <thead>
+                <th></th>
+                <th ng-repeat="col in out.{{ args.id }}.data.columns">
+                    {% raw %} {{ col }} {% endraw %}
+                </th>
+            </thead>
+            <tbody>
+                <tr ng-repeat="(ix, row) in out.{{ args.id }}.data.json">
+                    <td>{% raw %} {{ ix }} {% endraw %}</td>
+                    <td ng-repeat="value in row">
+                        {% raw %}
+                            {{ value }}
+                        {% endraw %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>

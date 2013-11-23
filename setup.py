@@ -21,7 +21,8 @@ setup(
         'html5lib==1.0b3',
         'flake8==2.1.0',
         'nose==1.3.0',
-        'coverage==3.7'
+        'coverage==3.7',
+        'joblib==0.7.1'
     ],
     classifiers=[
         'Development Status :: 1 - Planning',

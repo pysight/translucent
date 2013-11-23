@@ -7,14 +7,18 @@ import jinja2
 
 from .utils import is_string, to_json
 
-def attr_if(condition, attribute, value):
+
+def attr_if(condition, attribute, value=None):
     if not condition:
         return u''
     if not is_string(attribute):
         raise Exception('attribute name must be a string')
-    if not is_string(value):
-        raise Exception('attribute value must be a string')
-    return ' %s="%s"' % (attribute, value)
+    if not is_string(value) and value is not None:
+        raise Exception('attribute value must be a string or None')
+    if value is not None:
+        return ' %s="%s"' % (attribute, value)
+    else:
+        return ' %s' % attribute
 
 
 @jinja2.contextfunction
@@ -107,10 +111,6 @@ class TranslucentTag(Tag):
         'cite', 'dt', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'i', 'label', 'li', 'option',
         'q', 's', 'script', 'small', 'span', 'strong', 'td', 'title', 'u']
 
-    @property
-    def is_angular(self):
-        return self.name == 'script' and self.attrs.get('type') == 'ng'
-
     def decode(self, indent_level=0, **kwargs):
         attrs = []
         if self.attrs:
@@ -160,7 +160,7 @@ class TranslucentTag(Tag):
             indent_contents = None
         contents = self.decode_contents(indent_contents, flatten=flatten)
 
-        if self.hidden or self.is_angular:
+        if self.hidden:
             s = contents
         else:
             s = []

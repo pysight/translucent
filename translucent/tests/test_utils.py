@@ -1,3 +1,10 @@
+# -*- coding: utf-8
+
+import sys
+sys.modules.pop('threading', None)
+from gevent import monkey
+monkey.patch_thread()
+
 from nose.tools import assert_true, assert_false, assert_equals, assert_raises
 from translucent.utils import (
     is_string, is_number, is_valid_name, is_options_expression, new_closure, to_json
