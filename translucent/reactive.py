@@ -2,7 +2,6 @@
 
 __all__ = ('ReactiveValue', 'ReactiveExpression', 'ReactiveObserver', 'ReactiveContext')
 
-import inspect
 import re
 import sys
 from contextlib import contextmanager
@@ -10,6 +9,13 @@ from collections import defaultdict
 from joblib import hashing
 
 from .utils import is_string
+
+
+def _fast_hash(x):
+    try:
+        return hash(x)
+    except:
+        return hashing.hash(x)
 
 
 class UndefinedKey(Exception):
@@ -30,7 +36,7 @@ class ReactiveObject(object):
             raise Exception('invalid reactive object name: "%s"' % name)
         self.name = name
         self.value = None
-        self.hash = hashing.hash(self.value)
+        self.hash = _fast_hash(self.value)
         self.func = None
         self.invalidated = True
         self.parents = []
@@ -75,12 +81,12 @@ class ReactiveValue(ReactiveObject):
     def __init__(self, name, value):
         super(ReactiveValue, self).__init__(name)
         self.value = value
-        self.hash = hashing.hash(value)
+        self.hash = _fast_hash(value)
 
     def set_value(self, new_value):
         with self.context.log_block('%s.set_value(%s)', self.name,
                 self.context._fmt_value(new_value)):
-            new_hash = hashing.hash(new_value)
+            new_hash = _fast_hash(new_value)
             if self.value != new_value or (self.context.safe and self.hash != new_hash):
                 self.invalidate()
             self.value = new_value
@@ -103,11 +109,11 @@ class _ReactiveCallable(ReactiveObject):
 
     def try_run(self, isolate=False):
         try:
-            self.context._push_running(self)
+            self.context._push_call_stack(self)
             self.invalidated = False
             with self.context.log_block('%s.run()', self.name):
                 self.value = self.func(self.context.env)
-                self.hash = hashing.hash(self.value)
+                self.hash = _fast_hash(self.value)
                 if self.context.safe:
                     self.context._check_hash_integrity()
         except UndefinedKey as e:
@@ -115,7 +121,7 @@ class _ReactiveCallable(ReactiveObject):
             self.invalidated = True
             raise e
         finally:
-            self.context._pop_running(self)
+            self.context._pop_call_stack(self)
             self.exec_count += 1
 
 
@@ -157,7 +163,7 @@ class ReactiveExpression(_ReactiveCallable):
 
     def update_cache(self, name, value):
         if name not in self.current_cache:
-            self.current_cache[name] = hashing.hash(value)
+            self.current_cache[name] = _fast_hash(value)
 
 
 class ReactiveObserver(_ReactiveCallable):
@@ -227,7 +233,7 @@ class ReactiveEnvironment(object):
 
 class ReactiveContext(object):
 
-    __slots__ = ('safe', 'env', '_objects', '_running', '_pending', '_log_stream',
+    __slots__ = ('safe', 'env', '_objects', '_call_stack', '_pending', '_log_stream',
         '_log_indent', '_fmt_value', '_flush_queue')
 
     def __init__(self, safe=True, log=None, formatter=None):
@@ -235,7 +241,7 @@ class ReactiveContext(object):
         self.env = ReactiveEnvironment(self)
 
         self._objects = {}
-        self._running = []
+        self._call_stack = []
         self._pending = defaultdict(list)
         self._log_stream = None
         self._log_indent = 0
@@ -298,18 +304,20 @@ class ReactiveContext(object):
         return value
 
     def flush(self):
-        if self._running:
+        if self._call_stack:
             self.log('no flush (already running)')
-            return
-        with self.log_block('flush()'):
-            while self._flush_queue:
-                obj = self._flush_queue.pop()
-                with self.log_block('flush_queue.pop(%s).run()', obj.name):
-                    obj.run()
-        if self._flush_queue:
-            self.flush()
+        else:
+            with self.log_block('flush()'):
+                while self._flush_queue:
+                    obj = self._flush_queue.pop()
+                    with self.log_block('flush_queue.pop(%s).run()', obj.name):
+                        obj.run()
+            if self._flush_queue:
+                self.flush(safe=True)
 
     def run(self):
+        if self.safe:
+            self._check_hash_integrity()
         with self.log_block('run()'):
             for obj in self._objects.itervalues():
                 if obj.is_observer() and obj.invalidated:
@@ -351,15 +359,18 @@ class ReactiveContext(object):
 
     @contextmanager
     def log_block(self, fmt=None, *args):
-        if fmt is not None:
-            self.log(fmt, *args)
-        self._log_indent += 1
-        try:
+        if self._log_stream is None:
             yield
-        except Exception as e:
-            raise e
-        finally:
-            self._log_indent -= 1
+        else:
+            if fmt is not None:
+                self.log(fmt, *args)
+            self._log_indent += 1
+            try:
+                yield
+            except Exception as e:
+                raise e
+            finally:
+                self._log_indent -= 1
 
     def __contains__(self, name):
         return name in self._objects
@@ -374,12 +385,12 @@ class ReactiveContext(object):
         if self.safe:
             for obj in self._objects.itervalues():
                 if obj.is_value():
-                    if hashing.hash(obj.value) != obj.hash:
+                    if _fast_hash(obj.value) != obj.hash:
                         self.log('outdated hash detected for %s', obj.name)
                         obj.set_value(obj.value)
             for obj in self._objects.itervalues():
                 if not obj.is_value():
-                    if not obj.invalidated and hashing.hash(obj.value) != obj.hash:
+                    if not obj.invalidated and _fast_hash(obj.value) != obj.hash:
                         raise Exception('non-value object mutated: %s' % obj.name)
 
     def _register(self, obj):
@@ -400,22 +411,17 @@ class ReactiveContext(object):
         if observer not in self._pending[value_key]:
             self._pending[value_key].append(observer)
 
-    def _push_running(self, obj):
-        self._running[0:0] = [obj]
+    def _push_call_stack(self, obj):
+        self._call_stack[0:0] = [obj]
 
-    def _pop_running(self, obj):
-        self._running.remove(obj)
+    def _pop_call_stack(self, obj):
+        self._call_stack.remove(obj)
 
     def _is_running(self, obj):
-        return obj in self._running
+        return obj in self._call_stack
 
-    @staticmethod
-    def _get_caller():
-        for frame in inspect.stack():
-            caller = frame[0].f_locals.get('self', None)
-            if isinstance(caller, ReactiveObject):
-                return caller
-        return None
+    def _get_caller(self):
+        return None if not self._call_stack else self._call_stack[0]
 
     @staticmethod
     def _get_args(*args, **kwargs):
@@ -429,3 +435,4 @@ class ReactiveContext(object):
         result = dict(zip(args[0::2], args[1::2]))
         result.update(kwargs)
         return result.items()
+

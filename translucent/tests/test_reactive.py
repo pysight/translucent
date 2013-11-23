@@ -475,6 +475,35 @@ def test_safe_mode():
     assert_equals(rc['b2'].exec_count, 1)
     assert_equals(rc['c'].exec_count, 1)
 
+    def b3(env):
+        if len(env.a1) > 0:
+            return env.a1.pop()
+        return 0
+
+    rc = ReactiveContext(safe=True)
+    a = [1, 2, 3]
+    rc.new_value(a1=a, a2=a)
+    rc.new_expression(b=b3)
+    rc.new_observer('c', lambda env: env.b)
+    rc.run()
+    assert_equals(rc['b'].exec_count, 4)
+    assert_equals(rc['c'].exec_count, 4)
+    assert_equals(rc['b'].value, 0)
+    assert_equals(rc['c'].value, 0)
+    assert_equals(rc['a1'].value, [])
+    assert_equals(rc['a2'].value, [])
+    assert_equals(a, [])
+
+    a.extend([1, 2])
+    rc.run()
+    assert_equals(rc['b'].exec_count, 7)
+    assert_equals(rc['c'].exec_count, 7)
+    assert_equals(rc['b'].value, 0)
+    assert_equals(rc['c'].value, 0)
+    assert_equals(rc['a1'].value, [])
+    assert_equals(rc['a2'].value, [])
+    assert_equals(a, [])
+
 
 def test_cache_and_safe_mode():
 
@@ -484,7 +513,6 @@ def test_cache_and_safe_mode():
         return env.a
 
     rc = ReactiveContext(safe=True)
-    rc.start_log()
     rc.new_value(a=[1, 2, 3])
     rc.new_expression(b=b1)
     rc.cache('b')
@@ -583,3 +611,13 @@ def test_log():
     with rc.log_block('b'):
         rc.log('c')
     assert_equals(buf.getvalue(), '')
+
+
+if __name__ == '__main__':
+    from time import time
+    fs = [f for f in list(globals().keys()) if f.startswith('test_')]
+    t0 = time()
+    for i in xrange(10):
+        for f in fs:
+            globals()[f]()
+    print 'Tests completed in %.1f ms' % ((time() - t0) * 1000. / 10)
