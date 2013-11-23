@@ -151,11 +151,12 @@ class ReactiveExpression(_ReactiveCallable):
                         return self.value
                 self.current_cache = {}
             self.try_run(isolate=isolate)
-            key = frozenset(self.current_cache.items())
-            if key not in self.cache:
-                self.context.log('updating cache: %s -> %s',
-                    self.name, self.context._fmt_value(self.value))
-                self.cache[key] = self.value
+            if self.cached:
+                key = frozenset(self.current_cache.items())
+                if key not in self.cache:
+                    self.context.log('updating cache: %s -> %s',
+                        self.name, self.context._fmt_value(self.value))
+                    self.cache[key] = self.value
         return self.value
 
     def update_cache(self, name, value):

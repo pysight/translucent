@@ -1,6 +1,10 @@
 # -*- coding: utf-8
 
 import sys
+sys.modules.pop('threading', None)
+from gevent import monkey
+monkey.patch_thread()
+
 from cStringIO import StringIO
 from nose.tools import assert_true, assert_false, assert_equals, assert_raises
 from translucent.reactive import (UndefinedKey,
@@ -555,6 +559,38 @@ def test_cache_and_safe_mode():
     assert_equals(rc['c'].exec_count, 9)
     assert_equals(len(rc['b'].value), 1)
     assert_equals(len(rc['c'].value), 1)
+
+
+def test_external_access():
+
+    rc = ReactiveContext()
+    rc.new_value(a=1)
+    rc.new_expression('b', lambda env: env.a + 1)
+    rc.new_observer('c', lambda env: env.b + 1)
+
+    b = rc['b'].get_value()
+    assert_equals(b, 2)
+    assert_equals(rc['b'].exec_count, 1)
+    assert_equals(rc['c'].exec_count, 0)
+
+    rc.run()
+    assert_equals(rc['c'].value, 3)
+    assert_equals(rc['b'].exec_count, 1)
+    assert_equals(rc['c'].exec_count, 1)
+
+    rc = ReactiveContext()
+    rc.new_value(a=1)
+    rc.new_expression('b', lambda env: env.a + 1)
+    rc.new_observer('c', lambda env: env.b + 1)
+
+    b = rc['b'].get_value()
+    assert_equals(b, 2)
+    assert_equals(rc['b'].exec_count, 1)
+    assert_equals(rc['c'].exec_count, 0)
+
+    rc.set_value(a=2)
+    assert_equals(rc['b'].exec_count, 1)
+    assert_equals(rc['c'].exec_count, 0)
 
 
 def test_log():
