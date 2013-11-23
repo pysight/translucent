@@ -310,7 +310,7 @@ class ReactiveContext(object):
                     with self.log_block('flush_queue.pop(%s).run()', obj.name):
                         obj.run()
             if self._flush_queue:
-                self.flush(safe=True)
+                self.flush()
 
     def run(self):
         if self.safe:
@@ -433,4 +433,3 @@ class ReactiveContext(object):
         result = dict(zip(args[0::2], args[1::2]))
         result.update(kwargs)
         return result.items()
-

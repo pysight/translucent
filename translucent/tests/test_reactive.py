@@ -614,10 +614,8 @@ def test_log():
 
 
 if __name__ == '__main__':
-    from time import time
-    fs = [f for f in list(globals().keys()) if f.startswith('test_')]
-    t0 = time()
-    for i in xrange(10):
-        for f in fs:
-            globals()[f]()
-    print 'Tests completed in %.1f ms' % ((time() - t0) * 1000. / 10)
+    import time
+    tests = [f for f in list(globals().keys()) if f.startswith('test_')]
+    t0 = time.time()
+    [globals()[f]() for f in tests for _ in xrange(10)]
+    print 'Tests completed in %.1f ms' % ((time.time() - t0) * 1000. / 10)
