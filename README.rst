@@ -1,4 +1,6 @@
-
+.. image:: https://travis-ci.org/pysight/translucent.png
+	:target: https://travis-ci.org/pysight/translucent
+	
 Installing for Development
 ==========================
 
