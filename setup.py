@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='translucent',
-    version='0.0.3',
+    version='0.0.4',
     description='translucent',
     long_description=open('README.rst', 'rt').read(),
     author='Ivan Smirnov',
