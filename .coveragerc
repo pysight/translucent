@@ -1,9 +1,11 @@
 [run]
 branch = True
+omit = translucent/tests/*
 
 [report]
 exclude_lines =
     pragma: no cover
+    noqa
 ignore_errors = True
 show_missing = True
 

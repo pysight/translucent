@@ -107,9 +107,11 @@ class TranslucentTag(Tag):
 
     @property
     def needs_indent(self):
-        return not self.angular and self.name not in ['a', 'abbr', 'b', 'button', 'caption',
-        'cite', 'dt', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'i', 'label', 'li', 'option',
-        'q', 's', 'script', 'small', 'span', 'strong', 'td', 'title', 'u']
+        return not self.angular and self.name not in [
+            'a', 'abbr', 'b', 'button', 'caption', 'cite', 'dt', 'em', 'h1',
+            'h2', 'h3', 'h4', 'h5', 'h6', 'i', 'label', 'li', 'option', 'q',
+            's', 'script', 'small', 'span', 'strong', 'td', 'title', 'u'
+        ]
 
     def decode(self, indent_level=0, **kwargs):
         attrs = []
@@ -204,7 +206,7 @@ class TranslucentTag(Tag):
                     s.append('\n')
         return ''.join(s)
 
-bs4.Tag = TranslucentTag
+bs4.Tag = TranslucentTag  # monkey patch beautifulsoup4
 
 
 class TranslucentSoup(TranslucentTag, bs4.BeautifulSoup):

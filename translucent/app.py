@@ -16,7 +16,7 @@ from flask import Flask, Response, request
 from werkzeug.serving import run_with_reloader
 
 from .debugger import SocketIODebugger
-from .reactive import ReactiveContext
+from .reactive import Context
 from . import outputs
 
 
@@ -26,7 +26,7 @@ class App(object):
 
     def __init__(self, namespace):
         self.namespace = namespace
-        self.context = ReactiveContext()
+        self.context = Context()
 
     def on_init(self):
         pass
