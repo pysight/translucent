@@ -19,25 +19,20 @@ Install ``grunt`` and ``bower`` globally:
 	$ npm install -g grunt
 	$ npm install -g bower
 
-Install node dependencies:
+Install node and bower dependencies:
 
 .. code-block:: bash
 
 	$ npm install
-
-Download 3rd-party bower modules:
-
-.. code-block:: bash
-
 	$ bower install
 
-To rebuild ``vendor.js`` and ``vendor.css``, run:
+To build ``vendor.js`` and ``vendor.css``, run:
 
 .. code-block:: bash
 
 	$ grunt dist
 
-To rebuild ``app.js`` and ``style.css``, run:
+To build ``app.js`` and ``style.css``, run:
 
 .. code-block:: bash
 
@@ -48,3 +43,9 @@ To launch ``grunt`` in development mode (watches ``*.coffee`` and ``*.styl`` fil
 .. code-block:: bash
 
 	$ grunt dev
+
+To run the Python test suite, assuming `tox` and `pytest` are installed:
+
+.. code-block:: bash
+
+	$ tox -e check
