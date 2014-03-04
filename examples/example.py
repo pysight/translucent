@@ -45,7 +45,7 @@ class ExampleApp(App):
         ]
 
     def on_init(self):
-        self.set_value('objects', self.objects, shared=True)
+        self.set_value('objects', self.objects, share=True)
         self.set_input('object', 0)
 
 Server(ExampleApp, ui, host='0.0.0.0', port=5000).run()

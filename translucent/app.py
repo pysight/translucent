@@ -48,21 +48,21 @@ class App(object):
     def set_input(self, key, value):
         self.send_value(key, value, readonly=False)
 
-    def set_value(self, key, value, shared=False):
+    def set_value(self, key, value, share=False):
         self.context.set_value(key, value, _auto_add=True)
-        if shared:
+        if share:
             self.send_value(key, value, readonly=True)
 
-    def reactive(self, key, fn, shared=False):
+    def reactive(self, key, fn, share=None):
         if callable(fn):
             self.context.new_expression(key, fn)
-            if shared:
+            if share is not None:
                 def observer(env):
-                    result = fn(env)
+                    result = fn(env) if not callable(share) else share(fn(env))
                     self.send_value(key, result, readonly=True)
                 self.context.new_observer('__' + key, observer)
         else:
-            self.set_value(key, fn, shared=shared)
+            self.set_value(key, fn, readonly=bool(share))
 
     def send_value(self, key, value, readonly=False):
         print 'send_value():', key, '->', value, '[readonly]' if readonly else ''

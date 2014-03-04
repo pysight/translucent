@@ -34,8 +34,8 @@ class DataframeApp(App):
 
     def on_init(self):
         self.reactive('table', self.table)
-        self.reactive('tags1', lambda env: self.get_tags(env, env.tag2), shared=True)
-        self.reactive('tags2', lambda env: self.get_tags(env, env.tag1), shared=True)
+        self.reactive('tags1', lambda env: self.get_tags(env, env.tag2), share=True)
+        self.reactive('tags2', lambda env: self.get_tags(env, env.tag1), share=True)
         self.set_input('tag1', None)
         self.set_input('tag2', None)
         self.link('table')
