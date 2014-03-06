@@ -1,5 +1,7 @@
 module.exports = (grunt) ->
 
+	require('load-grunt-tasks')(grunt)
+
 	grunt.initConfig
 		pkg: grunt.file.readJSON "package.json"
 		watch:
@@ -20,15 +22,21 @@ module.exports = (grunt) ->
 				files: [
 					{
 						expand: true, 
-						cwd: "bower_components/chosen", 
+						cwd: "bower_components/chosen/public", 
 						src: "*.png", 
-						dest: "static/vendor/"
+						dest: "static/vendor"
 					},
 					{
 						expand: true,
 						cwd: "bower_components/font-awesome/fonts",
 						src: "*.*",
 						dest: "static/fonts"
+					},
+					{
+						expand: true,
+						cwd: "bower_components/angular-chosen-localytics",
+						src: "*.gif",
+						dest: "static/vendor"
 					}
 				]
 		coffeelint:
@@ -47,22 +55,39 @@ module.exports = (grunt) ->
 			compile:
 				files:
 					"static/css/style.css": "stylus/*.styl"
+		coffee:
+			chosen:
+				files: {
+					"bower_components/chosen/public/chosen.jquery.js": [
+						"bower_components/chosen/coffee/lib/select-parser.coffee",
+						"bower_components/chosen/coffee/lib/abstract-chosen.coffee",
+						"bower_components/chosen/coffee/chosen.jquery.coffee"
+					]
+				}
+		compass:
+			chosen:
+				options:
+					basePath: "bower_components/chosen"
+					sassDir: "sass"
+					cssDir: "public"
+		less:
+			chosen:
+				files: {
+					"bower_components/chosen-bootstrap/chosen-bootstrap.css":
+						"bower_components/chosen-bootstrap/build.less"
+				}
+		less_imports:
+			"bower_components/chosen-bootstrap/build.less": [
+				"bower_components/bootstrap/less/variables.less",
+				"bower_components/bootstrap/less/mixins.less",
+				"bower_components/chosen-bootstrap/bootstrap-chosen.less"
+			]
 
-	grunt.loadNpmTasks "grunt-contrib-copy"
-	grunt.loadNpmTasks "grunt-contrib-watch"
-	grunt.loadNpmTasks "grunt-contrib-stylus"
-	grunt.loadNpmTasks "grunt-contrib-cssmin"
-	grunt.loadNpmTasks "grunt-contrib-concat"
-	grunt.loadNpmTasks "grunt-contrib-uglify"
-	grunt.loadNpmTasks "grunt-usemin"
-	grunt.loadNpmTasks "grunt-browserify"
-	grunt.loadNpmTasks "grunt-coffeelint"
-
-	grunt.registerTask "coffee-task", ["browserify", "coffeelint"]
-	grunt.registerTask "stylus-task", ["stylus"]
-
-	grunt.registerTask "dist", ["copy:vendor", "useminPrepare", "concat", "cssmin", "uglify"]
-	grunt.registerTask "build", ["coffee-task", "stylus-task"]
+	grunt.registerTask "chosen", ["coffee:chosen", "compass:chosen", 
+		"less_imports", "less:chosen"]
+	grunt.registerTask "dist", ["chosen", "copy:vendor", 
+		"useminPrepare", "concat", "cssmin", "uglify"]
+	grunt.registerTask "build", ["browserify", "coffeelint", "stylus"]
 	grunt.registerTask "default", ["build"]
 	grunt.registerTask "dev", ["build", "watch"]
 	grunt.registerTask "all", ["dist", "build"]

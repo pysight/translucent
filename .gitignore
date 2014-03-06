@@ -20,3 +20,4 @@ docs/build
 .tox
 dist
 .cache
+.sass-cache

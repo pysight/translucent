@@ -17,6 +17,7 @@
     {
         "browserify": "~2.36",
         "grunt": ">=0.4",
+        "load-grunt-tasks": "*",
         "coffeeify": "*",
         "grunt-contrib-watch": "*",
         "grunt-contrib-uglify": "*",
@@ -26,6 +27,10 @@
         "grunt-usemin": "*",
         "grunt-contrib-cssmin": "*",
         "grunt-contrib-concat": "*",
-        "grunt-coffeelint": "*"
+        "grunt-coffeelint": "*",
+        "grunt-contrib-less": "*",
+        "grunt-less-imports": "*",
+        "grunt-contrib-coffee": "*",
+        "grunt-contrib-compass": "*"
     }
 }
