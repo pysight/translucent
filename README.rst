@@ -16,8 +16,7 @@ Install ``grunt`` and ``bower`` globally:
 
 .. code-block:: bash
 
-	$ npm install -g grunt
-	$ npm install -g bower
+	$ npm install -g grunt grunt-cli bower
 
 Install node and bower dependencies:
 
@@ -26,13 +25,13 @@ Install node and bower dependencies:
 	$ npm install
 	$ bower install
 
-To build ``vendor.js`` and ``vendor.css``, run:
+Build ``vendor.js`` and ``vendor.css``:
 
 .. code-block:: bash
 
 	$ grunt dist
 
-To build ``app.js`` and ``style.css``, run:
+Build ``app.js`` and ``style.css``:
 
 .. code-block:: bash
 
