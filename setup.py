@@ -11,7 +11,7 @@ setup(
     install_requires=[
         'six',
         'joblib',
-        'tornado',
+        'tornado >= 4.0',
         'sockjs-tornado'
     ],
     classifiers=[
