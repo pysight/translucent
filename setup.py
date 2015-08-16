@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='translucent',
-    version='0.1',
+    version='0.2',
     author='Ivan Smirnov',
     author_email='i.s.smirnov@gmail.com',
     packages=['translucent'],
