@@ -10,6 +10,9 @@
     "node": ">=0.12.0",
     "npm": ">= 2.10.0"
   },
+  "scripts": {
+    "build": "./node_modules/.bin/gulp build"
+  },
   "devDependencies": {
     "babel": "^5.8.21",
     "babel-loader": "^5.3.2",
