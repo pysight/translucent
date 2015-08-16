@@ -1,4 +1,3 @@
-import Actions from './actions';
 import Store from './store';
 
 import debug from 'debug';

@@ -2,10 +2,10 @@ import { transform } from 'react-tools';
 
 import Connection from './connection';
 import Context from './context';
-import Actions from './actions';
 import Store from './store';
-import Components from './components';
 import syncCallback from './syncCallback';
+
+import './components';
 
 import debug from 'debug';
 debug.enable('translucent');
@@ -45,6 +45,7 @@ window.Translucent = {
 // initialize the store
 Store.getInitialState();
 
+// the callback will be triggered on the second time it's called
 const evalJSX = syncCallback(2, data => eval(transform(data, { harmony: true })));
 
 // initialize SockJS connection

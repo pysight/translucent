@@ -1,7 +1,7 @@
 require('react-select/dist/default.css');
 import { default as ReactSelect } from 'react-select';
 
-import Actions from './actions';
+import { updateEnv } from './actions';
 import Store from './store';
 
 import debug from 'debug';
@@ -28,7 +28,7 @@ class BindableComponent extends React.Component {
     }
 
     onValueChange(value) {
-        Actions.updateEnv(this.props.bind, value, true);
+        updateEnv(this.props.bind, value, true);
     }
 }
 
