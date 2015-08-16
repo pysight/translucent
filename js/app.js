@@ -29,7 +29,6 @@ class SyncCallback {
 $(() => {
     window['_'] = _;
 
-    // let sc = SyncCallback(1, () => React.render(<Context render={func} />, document.body););
     window['req'] = function (mods, cb) {
         let sc = new SyncCallback(1 + mods.length, cb);
         for (let mod of mods) {
@@ -39,13 +38,11 @@ $(() => {
                 });
             }
             if (mod == 'react-bootstrap') {
-                // sc.times += 1;
                 require('react-bootstrap')(mod => {
                     window.ReactBootstrap = mod;
                     sc.callback();
                 });
             } else if (mod == 'classnames') {
-                // sc.times += 1;
                 require('classnames')(mod => {
                     window.classNames = mod;
                     sc.callback();

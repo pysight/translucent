@@ -4,7 +4,6 @@ $('body').addClass('application');
 
 req(['react-bootstrap'], () => {
     let {Grid, Col, Row, Panel, Label, Table, ListGroup, ListGroupItem} = ReactBootstrap;
-    console.log(ReactBootstrap);
 
     class Frame extends React.Component {
         render() {
@@ -197,7 +196,7 @@ req(['react-bootstrap'], () => {
             );
         }
     }
-    console.log("WAT");
+
     Translucent.render(env => <Page env={env} />);
 });
 
