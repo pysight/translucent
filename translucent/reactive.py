@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-__all__ = ('Value', 'Expression', 'Observer', 'Context')
-
 import re
 import sys
+import six
 from contextlib import contextmanager
 from collections import defaultdict
 from joblib import hashing
-
-from .utils import is_string
 
 
 def _fast_hash(obj):
@@ -46,12 +43,14 @@ class UndefinedKey(Exception):
 
 class _Object(object):
 
-    __slots__ = ('name', 'value', 'hash', 'func', 'invalidated', 'parents', 'children',
-        'context', 'exec_count', 'suspended')
+    __slots__ = [
+        'name', 'value', 'hash', 'func', 'invalidated', 'parents',
+        'children', 'context', 'exec_count', 'suspended'
+    ]
 
     def __init__(self, name):
         name_regex = r'^((_[_]+)|[a-zA-Z])[_a-zA-Z0-9]*$'
-        if not is_string(name) or not re.match(name_regex, name):
+        if not isinstance(name, six.string_types) or not re.match(name_regex, name):
             raise Exception('invalid reactive object name: "%s"' % name)
         self.name = name
         self.value = None
@@ -115,8 +114,7 @@ class Value(_Object):
         ----------
         value : object
         """
-        with self.context.log_block('%s.set_value(%s)', self.name,
-                self.context._fmt_value(value)):
+        with self.context.log_block('%s.set_value(%s)', self.name, self.context._fmt_value(value)):
             new_hash = _fast_hash(value)
             if self.value != value or (self.context.safe and self.hash != new_hash):
                 self.invalidate()
@@ -179,13 +177,13 @@ class Expression(_Callable):
         if self.invalidated or self.context._is_running(self):
             if self.memoized:
                 env_hash = frozenset((name, obj.hash)
-                    for name, obj in self.context._objects.iteritems()
-                    if not obj.is_observer())
+                                     for name, obj in self.context._objects.items()
+                                     if not obj.is_observer())
                 for h in self._cache:
                     if h <= env_hash:
                         value = self._cache[h]
                         self.context.log('retrieving value from cache: %s -> %s',
-                            self.name, self.context._fmt_value(value))
+                                         self.name, self.context._fmt_value(value))
                         self.value = value
                         for name, _ in h:
                             self.add_parent(self.context[name])
@@ -196,7 +194,7 @@ class Expression(_Callable):
                 key = frozenset(self._current_cache.items())
                 if key not in self._cache:
                     self.context.log('updating cache: %s -> %s',
-                        self.name, self.context._fmt_value(self.value))
+                                     self.name, self.context._fmt_value(self.value))
                     self._cache[key] = self.value
         return self.value
 
@@ -305,8 +303,10 @@ class Context(object):
         logging.
     """
 
-    __slots__ = ('safe', 'env', '_objects', '_call_stack', '_pending', '_log_stream',
-        '_log_indent', '_fmt_value', '_flush_queue')
+    __slots__ = [
+        'safe', 'env', '_objects', '_call_stack', '_pending',
+        '_log_stream', '_log_indent', '_fmt_value', '_flush_queue'
+    ]
 
     def __init__(self, safe=True, log=None, formatter=None):
         self.safe = safe
@@ -568,7 +568,7 @@ class Context(object):
         if self.safe:
             self._check_hash_integrity()
         with self.log_block('run()'):
-            for obj in self._objects.itervalues():
+            for obj in self._objects.values():
                 if obj.is_observer() and obj.invalidated:
                     obj.run()
             self.flush()
@@ -760,7 +760,7 @@ class Context(object):
             raise Exception('at least one pair or kwargs must be provided')
         if len(args) % 2:
             raise Exception('args length must be divisible by 2 (list of pairs)')
-        duplicates = sorted(set(args[0::2]) & set(kwargs.iterkeys()))
+        duplicates = sorted(set(args[0::2]) & set(kwargs))
         if duplicates:
             raise Exception('duplicate arguments passed: %r' % duplicates)
         result = dict(zip(args[0::2], args[1::2]))

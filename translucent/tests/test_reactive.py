@@ -1,8 +1,5 @@
 # -*- coding: utf-8
 
-from translucent import patch_thread
-patch_thread()
-
 import sys
 from cStringIO import StringIO
 from translucent.reactive import UndefinedKey, Context, Value, Expression, Observer
