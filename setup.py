@@ -19,13 +19,14 @@ setup(
     },
     include_package_data=True,
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
         'Intented Audience :: Developers',
         'Framework :: Tornado',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
         'Operating System :: OS Independent',
-        'Topic :: WWW/HTTP :: Dynamic Content'
+        'Topic :: Internet :: WWW/HTTP :: HTTP Servers',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content'
     ]
 )
