@@ -1,13 +1,12 @@
 language: python
 env:
-    - TOXENV=py26
-    - TOXENV=py27
-    - TOXENV=check
+- TOXENV=py27
+- TOXENV=py34
 virtualenv:
-    system_site_packages: true
-install: 
-    - pip install tox coveralls
+  system_site_packages: true
+install:
+- pip install tox coveralls
 script:
-    - tox
+- tox
 after_success:
-    - "if [ $TOXENV == check ]; then coveralls; fi"
+- "if [ $TOXENV == check ]; then coveralls; fi"
