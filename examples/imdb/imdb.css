@@ -1,0 +1,48 @@
+.row-eq-height {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display:         flex;
+}
+
+.title-list {
+    height: auto;
+    max-height: 500px;
+    overflow-x: hidden;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 5px;
+    border-color: #eee;
+}
+
+.title-list img {
+    height: 90px;
+    float: left;
+    vertical-align: top;
+    padding-top: 5px;
+    padding-bottom: 10px;
+}
+
+.title-list .content {
+    overflow: auto;
+    vertical-align: top;
+    padding-left: 10px;
+}
+
+.parent {
+    min-width: 800px;
+}
+
+.details img {
+    /*width: 214px;*/
+    width: 160px;
+    float: left;
+    vertical-align: top;
+    padding-top: 5px;
+}
+
+.details .content {
+    overflow: auto;
+    vertical-align: top;
+    padding-left: 10px;
+}
