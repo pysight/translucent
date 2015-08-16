@@ -1,4 +1,4 @@
-// import Reflux from 'reflux';
+import Reflux from 'reflux';
 import Actions from './actions';
 
 import debug from 'debug';

@@ -45,7 +45,6 @@ let config = {
             'window.jQuery': 'jquery',
             'root.jQuery': 'jquery',
             React: 'react',
-            Reflux: 'reflux',
             _: 'underscore'
         }),
         new webpack.DefinePlugin({
