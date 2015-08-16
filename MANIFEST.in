@@ -1,0 +1,2 @@
+recursive-include translucent/static *.*
+recursive-include translucent/static/fonts *.*
