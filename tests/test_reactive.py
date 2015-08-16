@@ -1,14 +1,13 @@
 # -*- coding: utf-8
 
 import sys
-from cStringIO import StringIO
-from translucent.reactive import UndefinedKey, Context, Value, Expression, Observer
-
+from six.moves import StringIO
 from pytest import raises
+
+from translucent.reactive import UndefinedKey, Context, Value, Expression, Observer
 
 
 def test_object_names():
-
     raises(Exception, Value, '_', None)
     raises(Exception, Value, '123name', 1)
     raises(Exception, Value, '_name123', None)
@@ -18,7 +17,6 @@ def test_object_names():
 
 
 def test_object_types():
-
     v = Value('v', None)
     e = Expression('e', id)
     o = Observer('o', id)
@@ -37,7 +35,6 @@ def test_object_types():
 
 
 def test_constructors():
-
     rc = Context
 
     assert rc().new_value(a=1, b=2) is None
@@ -57,7 +54,6 @@ def test_constructors():
 
 
 def test_decorators():
-
     rc = Context()
     rc.new_value(a=1)
 
@@ -82,7 +78,6 @@ def test_decorators():
 
 
 def test_undefined_key():
-
     try:
         raise UndefinedKey('a')
     except UndefinedKey as e:
@@ -104,7 +99,6 @@ def test_undefined_key():
 
 
 def test_environment():
-
     rc = Context()
     assert rc.env._context is rc
     assert not rc.env._isolate
@@ -122,7 +116,6 @@ def test_environment():
 
 
 def test_set_same_value():
-
     rc = Context()
     rc.new_value(a=1)
     rc.new_observer('b', lambda env: env.a)
@@ -135,7 +128,6 @@ def test_set_same_value():
 
 
 def test_overreactivity_1():
-
     rc = Context()
     rc.new_value(v=1)
     rc.new_expression('a', lambda env: env.v)
@@ -152,7 +144,6 @@ def test_overreactivity_1():
 
 
 def test_overreactivity_2():
-
     rc = Context()
     rc.new_value(a=1)
     rc.new_expression('b', lambda env: env.a + 5)
@@ -175,7 +166,6 @@ def test_overreactivity_2():
 
 
 def test_order_of_evaluation():
-
     rc = Context()
     rc.new_value(a=1)
     rc.new_expression('b', lambda env: env.a + 5)
@@ -208,7 +198,6 @@ def test_order_of_evaluation():
 
 
 class TestRecursion(object):
-
     def setup(self):
         self.rc = Context()
         self.rc.new_value(a=3)
@@ -260,7 +249,6 @@ class TestRecursion(object):
 
 
 def test_isolation_works():
-
     rc = Context()
     rc.new_value(x=1, y=10)
     rc.new_expression('b', lambda env: env.y + 100)
@@ -293,7 +281,6 @@ def test_isolation_works():
 
 
 def test_block_isolation():
-
     def c1(env):
         with ~env:
             return env.a + 1
@@ -327,7 +314,6 @@ def test_block_isolation():
 
 
 def test_write_then_read():
-
     def b(env):
         env.a = env[:].a - 1
         return env.a
@@ -345,7 +331,6 @@ def test_write_then_read():
 
 
 def test_children_parents():
-
     rc = Context()
     rc.new_value(a=1)
     assert len(rc['a'].children) is 0
@@ -361,7 +346,6 @@ def test_children_parents():
 
 
 def test_observer_suspending():
-
     rc = Context()
     rc.new_value(v=1)
     rc.new_expression('a', lambda env: env.v)
@@ -415,7 +399,6 @@ def test_observer_suspending():
 
 
 def test_safe_mode():
-
     def b1(env):
         if len(env.a) > 0:
             env.a.pop()
@@ -492,7 +475,6 @@ def test_safe_mode():
 
 
 def test_memoize_and_safe_mode():
-
     def b1(env):
         if len(env.a) > 0:
             env.a.pop()
@@ -551,7 +533,6 @@ def test_memoize_and_safe_mode():
 
 
 def test_external_access():
-
     rc = Context()
     rc.new_value(a=1)
     rc.new_expression('b', lambda env: env.a + 1)
@@ -585,7 +566,6 @@ def test_external_access():
 
 
 class TestLog(object):
-
     def setup(self):
         self.buf = StringIO()
         self.rc = Context(log=self.buf)
@@ -643,10 +623,3 @@ class TestLog(object):
         with self.rc.log_block('b'):
             self.rc.log('c')
         assert self.text == ''
-
-if __name__ == '__main__':
-    import time
-    tests = [f for f in list(globals().keys()) if f.startswith('test_')]
-    t0 = time.time()
-    [globals()[f]() for f in tests for _ in xrange(10)]
-    print 'Tests completed in %.1f ms' % ((time.time() - t0) * 1000. / 10)
