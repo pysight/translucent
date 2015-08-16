@@ -14,6 +14,10 @@ setup(
         'tornado >= 4.0',
         'sockjs-tornado'
     ],
+    package_data={
+        'translucent': ['static/*.*', 'static/fonts/*.*']
+    },
+    include_package_data=True,
     classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: Web Environment',
