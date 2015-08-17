@@ -1,10 +1,7 @@
+import SockJS from 'sockjs-client';
 import { updateEnv } from './actions';
 import Store from './store';
-
-import SockJS from 'sockjs-client';
-
-import debug from 'debug';
-const log = debug('translucent');
+import log from './log';
 
 export default class Connection {
     constructor(callback) {

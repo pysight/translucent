@@ -1,13 +1,11 @@
+import { Component } from 'react';
 require('react-select/dist/default.css');
 import { default as ReactSelect } from 'react-select';
-
 import { updateEnv } from './actions';
 import Store from './store';
+import log from './log';
 
-import debug from 'debug';
-const log = debug('translucent');
-
-class BindableComponent extends React.Component {
+class BindableComponent extends Component {
     constructor(props) {
         super(props);
         this.state = {value: Store.getInitialState()[this.props.bind]};

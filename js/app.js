@@ -4,13 +4,9 @@ import Connection from './connection';
 import Context from './context';
 import Store from './store';
 import syncCallback from './syncCallback';
+import log from './log';
 
 import './components';
-
-import debug from 'debug';
-debug.enable('translucent');
-const log = debug('translucent');
-
 
 window['_'] = _;
 
