@@ -1,29 +1,33 @@
 import { transform } from 'react-tools';
+import React from 'react';
+import _ from 'underscore';
+import $ from 'jquery';
 
 import Connection from './connection';
 import Context from './context';
 import Store from './store';
 import syncCallback from './syncCallback';
-import log from './log';
 
 import './components';
 
-window['_'] = _;
+window._ = _;
+window.React = React;
+window.$ = $;
 
-window['req'] = function (mods, cb) {
+window.req = (mods, cb) => {
     let callback = syncCallback(1 + mods.length, cb);
     for (let mod of mods) {
-        if (mod == 'bootstrap') {
+        if (mod === 'bootstrap') {
             require('bootstrap')(mod => {
                 callback();
             });
         }
-        if (mod == 'react-bootstrap') {
+        if (mod === 'react-bootstrap') {
             require('react-bootstrap')(mod => {
                 window.ReactBootstrap = mod;
                 callback();
             });
-        } else if (mod == 'classnames') {
+        } else if (mod === 'classnames') {
             require('classnames')(mod => {
                 window.classNames = mod;
                 callback();
@@ -31,12 +35,13 @@ window['req'] = function (mods, cb) {
         }
     }
     callback();
-}
+};
+
 window.Translucent = {
     render: (func) => {
         React.render(<Context render={func} />, document.body);
     }
-}
+};
 
 // initialize the store
 Store.getInitialState();

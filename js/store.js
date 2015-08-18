@@ -1,4 +1,5 @@
 import Reflux from 'reflux';
+import _ from 'underscore';
 import Actions from './actions';
 import log from './log';
 

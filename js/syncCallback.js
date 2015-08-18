@@ -8,7 +8,7 @@ class SyncCallback {
     callback(data) {
         this.called += 1;
         this.data = this.data || data;
-        if (this.called == this.times) {
+        if (this.called === this.times) {
             this.func(this.data);
         }
     }
@@ -17,5 +17,4 @@ class SyncCallback {
 export default (times, func) => {
     let sync = new SyncCallback(times, func);
     return sync.callback.bind(sync);
-}
-
+};

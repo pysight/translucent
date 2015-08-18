@@ -37,11 +37,11 @@ export default class Connection {
     onMessage(msg) {
         const {kind, data} = JSON.parse(msg.data);
         log('Connection::onMessage', kind, data);
-        if (kind == 'value') {
+        if (kind === 'value') {
             // use synchronous actions triggers before the store is fully populated
             const trigger = this.ready ? updateEnv : updateEnv.trigger;
             trigger.call(updateEnv, data.key, data.value, false);
-        } else if (kind == 'ready') {
+        } else if (kind === 'ready') {
             this.ready = true;
             this.callback();
         }
