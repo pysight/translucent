@@ -14,9 +14,9 @@ export default class Connection {
         }
         this.conn = new SockJS(`http://${window.location.host}/api`);
         this.callback = callback;
-        this.conn.onopen = this.onOpen.bind(this);
-        this.conn.onclose = this.onClose.bind(this);
-        this.conn.onmessage = this.onMessage.bind(this);
+        this.conn.onopen = ::this.onOpen;
+        this.conn.onclose = ::this.onClose;
+        this.conn.onmessage = ::this.onMessage;
         this.ready = false;
     }
 
@@ -26,7 +26,7 @@ export default class Connection {
 
     onOpen() {
         log('Connection::onOpen');
-        this.unsubscribe = Store.listen(this.sendValue.bind(this), this);
+        this.unsubscribe = Store.listen(::this.sendValue, this);
     }
 
     onClose() {

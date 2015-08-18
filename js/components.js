@@ -18,7 +18,7 @@ class BindableComponent extends React.Component {
     }
 
     componentDidMount() {
-        this.unsubscribe = Store.listen(this.updateValue.bind(this), this);
+        this.unsubscribe = Store.listen(::this.updateValue, this);
     }
 
     componentWillUnmount() {
@@ -50,7 +50,7 @@ class Select extends BindableComponent {
             options = _.map(_.keys(options).sort(), v => ({value: v, label: options[v]}));
         }
         return <ReactSelect {...props} options={options} value={this.state.value}
-                            onChange={this.onChange.bind(this)}/>;
+                            onChange={::this.onChange}/>;
     }
 }
 

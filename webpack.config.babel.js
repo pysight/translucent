@@ -22,7 +22,7 @@ let config = {
         loaders: [
             { test: /\.css$/, loader: 'style!css' },
             { test: /\.less$/, loader: 'style!css!less' },
-            { test: /\.js$/, exclude: /node_modules/, loader: 'babel' },
+            { test: /\.js$/, exclude: /node_modules/, loader: 'babel', 'query': { 'stage': 0 }},
             { test: /react\-bootstrap\/lib\/index\.js$/, loader: 'bundle?lazy&name=extras' },
             { test: /bootstrap\/dist\/js\/npm\.js$/, loader: 'bundle?lazy&name=extras' }
         ],

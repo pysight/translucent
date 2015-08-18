@@ -20,7 +20,7 @@ export default class Context extends Component {
     }
 
     componentDidMount() {
-        this.unsubscribe = Store.listen(this.updateEnv.bind(this), this);
+        this.unsubscribe = Store.listen(::this.updateEnv, this);
     }
 
     componentWillUnmount() {

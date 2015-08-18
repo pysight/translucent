@@ -14,7 +14,4 @@ class SyncCallback {
     }
 }
 
-export default (times, func) => {
-    let sync = new SyncCallback(times, func);
-    return sync.callback.bind(sync);
-};
+export default (times, func) => ::(new SyncCallback(times, func)).callback;
