@@ -53,10 +53,10 @@ let config = {
             }
         }),
         new webpack.optimize.CommonsChunkPlugin('vendor', 'vendor.bundle.js', Infinity)
-    ],
+    ]
 };
 
-if (process.env.NODE_ENV == 'production') {
+if (process.env.NODE_ENV !== 'production') {
     config.plugins.push(
         new webpack.optimize.DedupePlugin(),
         new webpack.optimize.UglifyJsPlugin({

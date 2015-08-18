@@ -27,7 +27,8 @@ gulp.task('less', () => {
 });
 
 gulp.task('vendor:css', () => {
-    return gulp.src([
+    return gulp.src(
+        [
             `${NPM}/bootstrap/dist/css/bootstrap.min.css`,
             `${NPM}/font-awesome/css/font-awesome.min.css`
         ])
@@ -41,20 +42,20 @@ gulp.task('vendor', ['vendor:css', 'vendor:fonts']);
 gulp.task('webpack', callback => {
     function onError(error, stats) {
         if (error) {
-            callback(new gutil.PluginError('webpack', error));
+            return callback(new gutil.PluginError('webpack', error));
         } else {
             gutil.log('[webpack]', stats.toString());
-            callback();
+            return callback();
         }
     }
     webpack(webpackConfig, onError);
 });
 
 gulp.task('build', ['webpack', 'vendor', 'less']);
-gulp.task('dev', ['webpack', 'less'])
+gulp.task('dev', ['webpack', 'less']);
 
 gulp.task('watch', ['dev'], () => {
-    gulp.watch(['js/*.js', 'less/*.less'], ['dev'])
+    gulp.watch(['js/*.js', 'less/*.less'], ['dev']);
 });
 
 gulp.task('default', ['build']);
