@@ -24,6 +24,7 @@
     "css-loader": "^0.16.0",
     "debug": "^2.2.0",
     "eslint": "^1.1.0",
+    "eslint-plugin-react": "^3.2.3",
     "font-awesome": "^4.4.0",
     "gulp": "^3.9.0",
     "gulp-concat": "^2.6.0",
