@@ -3,8 +3,15 @@ import { updateEnv } from './actions';
 import Store from './store';
 import log from './log';
 
+const $instance = Symbol();
+
 export default class Connection {
     constructor(callback) {
+        if (Connection[$instance]) {
+            return Connection[$instance];
+        } else {
+            Connection[$instance] = this;
+        }
         this.conn = new SockJS(`http://${window.location.host}/api`);
         this.callback = callback;
         this.conn.onopen = this.onOpen.bind(this);
