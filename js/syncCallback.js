@@ -3,6 +3,7 @@ class SyncCallback {
         this.called = 0;
         this.times = times;
         this.func = func;
+        this.data = null;
     }
 
     callback(data) {
