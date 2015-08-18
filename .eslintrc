@@ -27,7 +27,7 @@ rules:
     no-console: 0
     no-delete-var: 2
     no-empty-label: 2
-    no-eval: 2
+    no-eval: 0
     no-extend-native: 2
     no-extra-bind: 2
     no-fallthrough: 2
