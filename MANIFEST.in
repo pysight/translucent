@@ -1,2 +1,3 @@
-recursive-include translucent/static *.*
+recursive-include translucent/static *.js
+recursive-include translucent/static *.css
 recursive-include translucent/static/fonts *.*

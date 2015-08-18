@@ -15,7 +15,11 @@ setup(
         'sockjs-tornado'
     ],
     package_data={
-        'translucent': ['static/*.*', 'static/fonts/*.*']
+        'translucent': [
+            'static/*.js',
+            'static/*.css',
+            'static/fonts/*.*'
+        ]
     },
     include_package_data=True,
     classifiers=[
