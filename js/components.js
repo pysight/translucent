@@ -11,14 +11,14 @@ class BindableComponent extends React.Component {
         this.state = {value: Store.getInitialState()[this.props.bind]};
     }
 
-    updateValue(env, key) {
+    onValueUpdate = (env, key) => {
         if (key === this.props.bind || !key) {
             this.setState({value: env[this.props.bind]});
         }
     }
 
     componentDidMount() {
-        this.unsubscribe = Store.listen(::this.updateValue, this);
+        this.unsubscribe = Store.listen(this.onValueUpdate, this);
     }
 
     componentWillUnmount() {
@@ -33,7 +33,7 @@ class BindableComponent extends React.Component {
 window.BindableComponent = BindableComponent;
 
 class Select extends BindableComponent {
-    onChange(value) {
+    onChange = (value) => {
         if (this.props.onChange) {
             this.props.onChange(value);
         }
@@ -49,8 +49,8 @@ class Select extends BindableComponent {
         } else if (_.isObject(options)) {
             options = _.map(_.keys(options).sort(), v => ({value: v, label: options[v]}));
         }
-        return <ReactSelect {...props} options={options} value={this.state.value}
-                            onChange={::this.onChange}/>;
+        return <ReactSelect options={options} value={this.state.value}
+                            onChange={this.onChange} {...props} />;
     }
 }
 

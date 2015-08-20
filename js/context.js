@@ -14,13 +14,13 @@ export default class Context extends Component {
         return <div>{this.props.render(this.state.env)}</div>;
     }
 
-    updateEnv(env) {
+    updateEnv = (env) => {
         log('Context::updateEnv', env);
         this.setState({env});
     }
 
     componentDidMount() {
-        this.unsubscribe = Store.listen(::this.updateEnv, this);
+        this.unsubscribe = Store.listen(this.updateEnv, this);
     }
 
     componentWillUnmount() {

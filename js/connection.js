@@ -14,9 +14,9 @@ export default class Connection {
         }
         this.conn = new SockJS(`http://${window.location.host}/api`);
         this.callback = callback;
-        this.conn.onopen = ::this.onOpen;
-        this.conn.onclose = ::this.onClose;
-        this.conn.onmessage = ::this.onMessage;
+        this.conn.onopen = this.onOpen;
+        this.conn.onclose = this.onClose;
+        this.conn.onmessage = this.onMessage;
         this.ready = false;
     }
 
@@ -24,12 +24,12 @@ export default class Connection {
         this.conn.send(JSON.stringify(data));
     }
 
-    onOpen() {
+    onOpen = () => {
         log('Connection::onOpen');
         this.unsubscribe = Store.listen(::this.sendValue, this);
     }
 
-    onClose() {
+    onClose = () => {
         log('Connection::onClose');
         this.unsubscribe();
     }
@@ -41,7 +41,7 @@ export default class Connection {
         }
     }
 
-    onMessage(msg) {
+    onMessage = (msg) => {
         const {kind, data} = JSON.parse(msg.data);
         log('Connection::onMessage', kind, data);
         if (kind === 'value') {
