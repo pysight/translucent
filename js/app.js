@@ -1,7 +1,6 @@
-import { transform } from 'react-tools';
 import React from 'react';
 import _ from 'underscore';
-import $ from 'jquery';
+import { transform } from 'react-tools';
 
 import Connection from './connection';
 import Context from './context';
@@ -12,7 +11,6 @@ import './components';
 
 window._ = _;
 window.React = React;
-window.$ = $;
 
 window.req = (mods, cb) => {
     let callback = syncCallback(1 + mods.length, cb);
@@ -30,6 +28,11 @@ window.req = (mods, cb) => {
         } else if (mod === 'classnames') {
             require('classnames')(mod => {
                 window.classNames = mod;
+                callback();
+            });
+        } else if (mod === 'jquery') {
+            require('jquery')(mod => {
+                window.$ = window.jQuery = mod;
                 callback();
             });
         }
@@ -53,9 +56,4 @@ const evalJSX = syncCallback(2, data => eval(transform(data, { harmony: true }))
 const connection = new Connection(evalJSX);
 
 // fetch user code from the server and execute when ready
-$.ajax({
-    url: 'index.js',
-    cache: false,
-    converters: { 'text script': _.identity },
-    success: evalJSX
-});
+fetch('/index.js').then(r => r.text()).then(body => evalJSX(body));
