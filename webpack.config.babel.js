@@ -8,8 +8,8 @@ let config = {
     entry: {
         app: [`${__dirname}/js/app.js`],
         vendor: [
-            'react', 'react-tools', 'reflux', 'sockjs-client', 'jquery', 'underscore', 'debug',
-            'react-select', 'react-input-autosize', 'classnames'
+            'react', 'react-tools', 'reflux', 'sockjs-client', 'underscore', 'debug',
+            'react-select', 'react-input-autosize', 'classnames', 'whatwg-fetch'
         ]
     },
     output: {
@@ -23,8 +23,9 @@ let config = {
             { test: /\.css$/, loader: 'style!css' },
             { test: /\.less$/, loader: 'style!css!less' },
             { test: /\.js$/, exclude: /node_modules/, loader: 'babel', 'query': { 'stage': 0 }},
-            { test: /react\-bootstrap\/lib\/index\.js$/, loader: 'bundle?lazy&name=extras' },
-            { test: /bootstrap\/dist\/js\/npm\.js$/, loader: 'bundle?lazy&name=extras' }
+            { test: require.resolve('react-bootstrap'), loader: 'bundle?lazy&name=extras' },
+            { test: require.resolve('bootstrap'), loader: 'bundle?lazy&name=extras' },
+            { test: require.resolve('jquery'), loader: 'bundle?lazy&name=extras' }
         ],
         noParse: []
     },
@@ -45,7 +46,9 @@ let config = {
             'window.jQuery': 'jquery',
             'root.jQuery': 'jquery',
             React: 'react',
-            _: 'underscore'
+            _: 'underscore',
+            'es6-promise': 'es6-promise',
+            'fetch': 'imports?this=>global!exports?global.fetch!whatwg-fetch'
         }),
         new webpack.DefinePlugin({
             'process.env': {

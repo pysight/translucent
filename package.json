@@ -25,6 +25,7 @@
     "debug": "^2.2.0",
     "eslint": "^1.2.1",
     "eslint-plugin-react": "^3.2.3",
+    "exports-loader": "^0.6.2",
     "font-awesome": "^4.4.0",
     "gulp": "^3.9.0",
     "gulp-concat": "^2.6.0",
@@ -34,6 +35,7 @@
     "gulp-plumber": "^1.0.1",
     "gulp-util": "^3.0.6",
     "gulp-watch": "^4.3.5",
+    "imports-loader": "^0.6.4",
     "jquery": "^2.1.4",
     "react": "^0.13.3",
     "react-bootstrap": "^0.24.5",
@@ -44,6 +46,7 @@
     "sockjs-client": "^1.0.3",
     "style-loader": "^0.12.3",
     "underscore": "^1.8.3",
-    "webpack": "^1.11.0"
+    "webpack": "^1.11.0",
+    "whatwg-fetch": "^0.9.0"
   }
 }
