@@ -1,9 +1,9 @@
-const KEEN = 'https://cdn.rawgit.com/keen/dashboards/gh-pages/assets/css/keen-dashboards.css';
-$('head').append(`<link rel="stylesheet" type="text/css" href="${KEEN}" />`);
-$('body').addClass('application');
-
-req(['react-bootstrap'], () => {
+req(['react-bootstrap', 'jquery'], () => {
     let {Grid, Col, Row, Panel, Label, Table, ListGroup, ListGroupItem} = ReactBootstrap;
+
+    const KEEN = 'https://cdn.rawgit.com/keen/dashboards/gh-pages/assets/css/keen-dashboards.css';
+    $('head').append(`<link rel="stylesheet" type="text/css" href="${KEEN}" />`);
+    $('body').addClass('application');
 
     class Frame extends React.Component {
         render() {
