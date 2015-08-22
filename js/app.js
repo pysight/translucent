@@ -3,7 +3,7 @@ import React from 'react';
 import Connection from './connection';
 import Context from './context';
 import Store from './store';
-import syncCallback from './syncCallback';
+import defer from './defer';
 import loader from './loader';
 
 import './components';
@@ -16,7 +16,7 @@ window.Translucent = {
 
 Store.getInitialState();
 
-const evalJSX = syncCallback(2, loader);
+const evalJSX = defer(2, loader);
 
 const connection = new Connection(evalJSX);
 
