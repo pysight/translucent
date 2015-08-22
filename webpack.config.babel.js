@@ -8,8 +8,8 @@ let config = {
     entry: {
         app: [`${__dirname}/js/app.js`],
         vendor: [
-            'react', 'react-tools', 'reflux', 'sockjs-client', 'underscore', 'debug',
-            'react-select', 'react-input-autosize', 'classnames', 'whatwg-fetch'
+            'react', 'react-tools', 'reflux', 'sockjs-client', 'underscore',
+            'debug', 'react-select', 'whatwg-fetch'
         ]
     },
     output: {
@@ -22,10 +22,7 @@ let config = {
         loaders: [
             { test: /\.css$/, loader: 'style!css' },
             { test: /\.less$/, loader: 'style!css!less' },
-            { test: /\.js$/, exclude: /node_modules/, loader: 'babel', 'query': { 'stage': 0 }},
-            { test: require.resolve('react-bootstrap'), loader: 'bundle?lazy&name=extras' },
-            { test: require.resolve('bootstrap'), loader: 'bundle?lazy&name=extras' },
-            { test: require.resolve('jquery'), loader: 'bundle?lazy&name=extras' }
+            { test: /\.js$/, exclude: /node_modules/, loader: 'babel', 'query': { 'stage': 0 }}
         ],
         noParse: []
     },
