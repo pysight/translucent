@@ -10,7 +10,7 @@ class SyncCallback {
         this.called += 1;
         this.data = this.data || data;
         if (this.called === this.times) {
-            this.func(this.data);
+            return this.func(this.data);
         }
     }
 }
