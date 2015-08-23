@@ -9,7 +9,8 @@ let config = {
         app: [`${__dirname}/js/app.js`],
         vendor: [
             'react', 'react-tools', 'reflux', 'sockjs-client', 'underscore',
-            'debug', 'react-select', 'whatwg-fetch'
+            'debug', 'react-select', 'whatwg-fetch',
+            'babel-transform'
         ]
     },
     output: {
@@ -24,12 +25,13 @@ let config = {
             { test: /\.less$/, loader: 'style!css!less' },
             { test: /\.js$/, exclude: /node_modules/, loader: 'babel', 'query': { 'stage': 0 }}
         ],
-        noParse: []
+        noParse: [require.resolve('babel-core/browser.min')]
     },
     resolve: {
         extensions: ['', '.js'],
         modulesDirectories: ['node_modules'],
         alias: {
+            'babel-transform': require.resolve('babel-core/browser.min'),
             'react-select.less': `${NPM}/react-select/less/select.less`
         }
     },
@@ -52,7 +54,9 @@ let config = {
                 NODE_ENV: JSON.stringify('production')
             }
         }),
-        new webpack.optimize.CommonsChunkPlugin('vendor', 'vendor.bundle.js', Infinity)
+        new webpack.optimize.CommonsChunkPlugin(
+            'vendor', 'vendor.bundle.js', Infinity
+        )
     ]
 };
 
