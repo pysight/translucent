@@ -10,9 +10,10 @@ setup(
     packages=['translucent'],
     install_requires=[
         'six',
-        'joblib',
+        'joblib >= 0.8.0',
         'tornado >= 4.0',
-        'sockjs-tornado'
+        'sockjs-tornado >= 1.0.0',
+        'pyexecjs >= 1.1.0'
     ],
     package_data={
         'translucent': [
