@@ -45,7 +45,7 @@ class ListBox extends BindableComponent {
     }
 
     render() {
-        const items = _.map(this.props.items, item =>
+        const items = this.props.items.map(item =>
             <ListGroupItem href="#" ref={item.value} active={this.state.value === item.value}
                            key={item.value} onClick={this.handleClick.bind(this, item.value)}>
                 {item.label}
@@ -79,8 +79,8 @@ class ListItem extends React.Component {
 class Sidebar extends React.Component {
     render() {
         const titles = this.props.titles,
-            options = _.map(titles, t => ({value: t.id, label: `${t.title} (${t.year})`})),
-            items = _.map(titles, t => ({value: t.id, label: <ListItem title={t}/>}));
+            options = titles.map(t => ({value: t.id, label: `${t.title} (${t.year})`})),
+            items = titles.map(t => ({value: t.id, label: <ListItem title={t}/>}));
         return (
             <Frame>
                 <Select options={_.sortBy(options, 'label')} bind="selected" clearable={false}/>
@@ -93,13 +93,7 @@ class Sidebar extends React.Component {
 class Details extends React.Component {
     render() {
         const title = this.props.title;
-        const frame_title = (
-            <span>
-                <strong>{title.title}</strong>
-                <small className="muted"> ({title.year})</small>
-            </span>
-        );
-        const genres = _.flatten(_.map(title.genres, genre =>
+        const genres = _.flatten(title.genres.map(genre =>
                                  [<Label bsStyle="primary">{genre}</Label>, ' ']));
         const certificate = <Label bsStyle="success">{title.certificate.certificate}</Label>;
         const tagline = title.tagline ? <blockquote><p>{title.tagline}</p></blockquote> : '';
