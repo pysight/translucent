@@ -38,9 +38,6 @@ class ListBox extends BindableComponent {
         const parentTop = 0;
         const parentBottom = parentTop + $(parent).height();
 
-        console.log(top, bottom, $(parent).height(), $(parent).outerHeight());
-        console.log(selected.offsetTop, selected.offsetHeight);
-
         if (bottom < parentTop || top > parentBottom) {
             selected.scrollIntoView();
         }
