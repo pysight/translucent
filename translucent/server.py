@@ -7,6 +7,7 @@ import logging
 from tornado.web import RequestHandler, StaticFileHandler
 from tornado.web import Application as WebApplication
 from tornado.ioloop import IOLoop
+from tornado import autoreload
 from sockjs.tornado import SockJSRouter, SockJSConnection
 
 from translucent.reactive import Context
@@ -73,10 +74,9 @@ class ApplicationMeta(type):
 
 
 def get_code(path, transpile=None):
-    full_path = os.path.abspath(os.path.expanduser(path))
-    if not os.path.isfile(full_path):
+    if not os.path.isfile(path):
         raise OSError('file not found: {}'.format(path))
-    code = open(full_path).read()
+    code = open(path).read()
     if transpile is None:
         transpile = get_js_runtime() is not None
     else:
@@ -132,7 +132,7 @@ class Application(six.with_metaclass(ApplicationMeta, SockJSConnection)):
         log.debug('Application::on_close')
 
     @classmethod
-    def start(cls, script, title=None, stylesheet=None, debug=False, port=9999,
+    def start(cls, script='index.js', title=None, stylesheet=None, debug=False, port=9999,
               transpile=None):
         log.debug('Application::start')
 
@@ -147,6 +147,7 @@ class Application(six.with_metaclass(ApplicationMeta, SockJSConnection)):
             'debug': debug
         }
 
+        script = os.path.abspath(os.path.join(os.path.dirname(__file__), script))
         code, transpile = get_code(script, transpile=transpile)
 
         handlers = [
@@ -158,5 +159,8 @@ class Application(six.with_metaclass(ApplicationMeta, SockJSConnection)):
 
         app = WebApplication(handlers, **settings)
         app.listen(port)
+
+        if debug and transpile:
+            autoreload.watch(script)
 
         IOLoop.instance().start()
