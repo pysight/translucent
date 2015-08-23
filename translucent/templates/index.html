@@ -9,6 +9,11 @@
     </head>
     <body>
         <script src="/static/vendor.bundle.js"></script>
-        <script src="/static/app.bundle.js"></script>
+        {% if transpile %}
+            <script src="/static/app-es5.bundle.js"></script>
+        {% else %}
+            <script src="/static/app-jsx.bundle.js"></script>
+        {% end %}
+        <!-- <script src="/static/app.bundle.js"></script> -->
     </body>
 </html>

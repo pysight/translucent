@@ -6,11 +6,11 @@ const NPM = path.join(__dirname, 'node_modules');
 
 let config = {
     entry: {
-        app: [`${__dirname}/js/app.js`],
+        'app-es5': `${__dirname}/js/app-es5`,
+        'app-jsx': `${__dirname}/js/app-jsx`,
         vendor: [
-            'react', 'react-tools', 'reflux', 'sockjs-client', 'underscore',
-            'debug', 'react-select', 'whatwg-fetch',
-            'babel-transform'
+            'react', 'reflux', 'sockjs-client', 'underscore',
+            'debug', 'react-select', 'whatwg-fetch'
         ]
     },
     output: {

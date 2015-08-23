@@ -45,7 +45,7 @@ def main():
     logging.getLogger('translucent').setLevel(logging.DEBUG)
 
     App.start(path_to('imdb.js'), stylesheet=path_to('imdb.css'),
-              title='IMDB Top 250', debug=True)
+              title='IMDB Top 250', debug=True, transpile=None)
 
 if __name__ == '__main__':
     main()

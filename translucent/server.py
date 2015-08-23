@@ -10,17 +10,19 @@ from tornado.ioloop import IOLoop
 from sockjs.tornado import SockJSRouter, SockJSConnection
 
 from translucent.reactive import Context
+from translucent.transpile import transpile_jsx, get_js_runtime
 
 log = logging.getLogger('translucent')
 log.addHandler(logging.NullHandler())
 
 
 class WebHandler(RequestHandler):
-    def initialize(self, title):
+    def initialize(self, title, transpile):
         self.title = title
+        self.transpile = transpile
 
     def get(self):
-        self.render('index.html', title=self.title or 'translucent')
+        self.render('index.html', title=self.title or 'translucent', transpile=self.transpile)
 
 
 class FileHandler(StaticFileHandler):
@@ -36,6 +38,14 @@ class FileHandler(StaticFileHandler):
             self.finish('')
         else:
             return super(FileHandler, self).get(self.filename, include_body)
+
+
+class TextHandler(RequestHandler):
+    def initialize(self, text):
+        self.text = text
+
+    def get(self):
+        self.finish(self.text)
 
 
 def reactive(fn):
@@ -60,6 +70,20 @@ class ApplicationMeta(type):
                     clsdict['_reactive'].append(name)
                     clsdict['_shared'].append(name)
         return super(ApplicationMeta, meta).__new__(meta, clsname, bases, clsdict)
+
+
+def get_code(path, transpile=None):
+    full_path = os.path.abspath(os.path.expanduser(path))
+    if not os.path.isfile(full_path):
+        raise OSError('file not found: {}'.format(path))
+    code = open(full_path).read()
+    if transpile is None:
+        transpile = get_js_runtime() is not None
+    else:
+        transpile = bool(transpile)
+    if transpile:
+        code = transpile_jsx(code)
+    return code, transpile
 
 
 class Application(six.with_metaclass(ApplicationMeta, SockJSConnection)):
@@ -108,7 +132,8 @@ class Application(six.with_metaclass(ApplicationMeta, SockJSConnection)):
         log.debug('Application::on_close')
 
     @classmethod
-    def start(cls, script, title=None, stylesheet=None, debug=False, port=9999):
+    def start(cls, script, title=None, stylesheet=None, debug=False, port=9999,
+              transpile=None):
         log.debug('Application::start')
 
         cls.setup()
@@ -122,9 +147,11 @@ class Application(six.with_metaclass(ApplicationMeta, SockJSConnection)):
             'debug': debug
         }
 
+        code, transpile = get_code(script, transpile=transpile)
+
         handlers = [
-            ('/', WebHandler, {'title': title}),
-            ('/index.js', FileHandler, {'path': script}),
+            ('/', WebHandler, {'title': title, 'transpile': transpile}),
+            ('/index.js', TextHandler, {'text': code}),
             ('/index.css', FileHandler, {'path': stylesheet})
         ]
         handlers.extend(router.urls)

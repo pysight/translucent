@@ -1,11 +1,9 @@
 import React from 'react';
 import _ from 'underscore';
-import transform from 'babel-transform';
 
 export default function(code) {
-    const es5 = transform(code, {stage: 0}).code;
     function func(require) { // eslint-disable-line no-unused-vars
-        eval(es5);
+        eval(code);
     }
     require.ensure([], require => {
         return func(req => {
