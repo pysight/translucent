@@ -1,4 +1,4 @@
-let {Grid, Col, Row, Panel, Label, Table, ListGroup, ListGroupItem} = require('react-bootstrap');
+let {Grid, Col, Row, Label, Table, ListGroup, ListGroupItem} = require('react-bootstrap');
 let $ = require('jquery');
 const KEEN = 'https://cdn.rawgit.com/keen/dashboards/gh-pages/assets/css/keen-dashboards.css';
 $('head').append(`<link rel="stylesheet" type="text/css" href="${KEEN}" />`);
@@ -20,7 +20,7 @@ class Frame extends React.Component {
 
 class ListBox extends BindableComponent {
     handleClick(value) {
-        if (value != this.state.value) {
+        if (value !== this.state.value) {
             React.findDOMNode(this.refs[value]).classList.add('active');
             React.findDOMNode(this.refs[this.state.value]).classList.remove('active');
             this.onValueChange(value);
@@ -33,20 +33,20 @@ class ListBox extends BindableComponent {
 
         const top = $(selected).position().top;
         const bottom = top + $(selected).height();
-        const parent_top = 0;
-        const parent_bottom = parent_top + $(parent).height();
+        const parentTop = 0;
+        const parentBottom = parentTop + $(parent).height();
 
         console.log(top, bottom, $(parent).height(), $(parent).outerHeight());
         console.log(selected.offsetTop, selected.offsetHeight);
 
-        if (bottom < parent_top || top > parent_bottom) {
+        if (bottom < parentTop || top > parentBottom) {
             selected.scrollIntoView();
         }
     }
 
     render() {
         const items = _.map(this.props.items, item =>
-            <ListGroupItem href="#" ref={item.value}  active={this.state.value == item.value}
+            <ListGroupItem href="#" ref={item.value} active={this.state.value === item.value}
                            key={item.value} onClick={this.handleClick.bind(this, item.value)}>
                 {item.label}
             </ListGroupItem>
@@ -59,7 +59,7 @@ class ListBox extends BindableComponent {
     }
 }
 
-class ListItem2 extends React.Component {
+class ListItem extends React.Component {
     render() {
         return (
             <div>
@@ -76,71 +76,15 @@ class ListItem2 extends React.Component {
     }
 }
 
-class Sidebar2 extends React.Component {
+class Sidebar extends React.Component {
     render() {
         const titles = this.props.titles,
-              options = _.map(titles, t => ({value: t.id, label: `${t.title} (${t.year})`})),
-              items = _.map(titles, t => ({value: t.id, label: <ListItem2 title={t}/>}));
+            options = _.map(titles, t => ({value: t.id, label: `${t.title} (${t.year})`})),
+            items = _.map(titles, t => ({value: t.id, label: <ListItem title={t}/>}));
         return (
             <Frame>
                 <Select options={_.sortBy(options, 'label')} bind="selected" clearable={false}/>
                 <ListBox className="title-list" items={items} bind="selected"/>
-            </Frame>
-        )
-    }
-}
-
-class ListItem extends React.Component {
-    onSelect() {
-        if (this.props.active) {
-            return;
-        }
-        React.findDOMNode(this.refs[this.props.title.id]).classList.add('active');
-        const activeItem = this.props.activeItem();
-        if (activeItem) {
-            React.findDOMNode(activeItem).classList.remove('active');
-        }
-        Translucent.update('selected', this.props.title.id);
-    }
-
-    render() {
-        const t = this.props.title;
-        const cls = classNames('list-group-item', {active: this.props.active});
-        return (
-            <a className={cls} key={t.id} href="#" ref={t.id} onClick={this.onSelect.bind(this)}>
-                <img src={t.image} />
-                <div className="content">
-                    <h6>{t.title}</h6>
-                    <p className="small">
-                        Year: {t.year}<br/>
-                        Rating: {t.rating}
-                    </p>
-                </div>
-            </a>
-        );
-    }
-}
-
-class Sidebar extends React.Component {
-    onSelect(value) {
-        if (this.refs[value]) {
-            React.findDOMNode(this.refs[value]).scrollIntoView();
-        }
-    }
-
-    render() {
-        const titles = _.map(this.props.titles,
-            t => <ListItem active={t.id == this.props.selected} title={t} key={t.id}
-                           ref={t.id} activeItem={() => this.refs[this.props.selected]}/>);
-        const options = _.sortBy(_.map(this.props.titles,
-            t => ({value: t.id, label: `${t.title} (${t.year})`})), 'label');
-        return (
-            <Frame>
-                <Select options={options} bind="selected" clearable={false}
-                        onChange={this.onSelect.bind(this)}/>
-                <div className="list-group title-list">
-                    {titles}
-                </div>
             </Frame>
         );
     }
@@ -182,12 +126,11 @@ class Details extends React.Component {
 
 class Page extends React.Component {
     render() {
-        // Sidebar titles={this.props.titles} selected={this.props.env.selected}
         return (
             <Grid className="parent">
                 <Row>
                     <Col sm={4}>
-                        <Sidebar2 titles={this.props.env.titles}/>
+                        <Sidebar titles={this.props.env.titles}/>
                     </Col>
                     <Col sm={8} className="details">
                         <Details title={this.props.env.title} />
