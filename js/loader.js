@@ -19,6 +19,10 @@ export default function(code) {
                 return require('react-bootstrap');
             } else if (req === 'bootstrap') {
                 require('bootstrap');
+            } else if (req === 'translucent/components/bindable') {
+                return require('./components/bindable');
+            } else if (req === 'translucent/components/select') {
+                return require('./components/select');
             }
         });
     }, 'extras');

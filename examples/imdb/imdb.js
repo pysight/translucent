@@ -5,6 +5,8 @@ $('head').append(`<link rel="stylesheet" type="text/css" href="${KEEN}" />`);
 $('body').addClass('application');
 let React = require('react');
 let _ = require('underscore');
+let BindableComponent = require('translucent/components/bindable');
+let Select = require('translucent/components/select');
 
 class Frame extends React.Component {
     render() {

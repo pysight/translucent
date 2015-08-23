@@ -9,8 +9,7 @@ let config = {
         'app-es5': `${__dirname}/js/app-es5`,
         'app-jsx': `${__dirname}/js/app-jsx`,
         vendor: [
-            'react', 'reflux', 'sockjs-client', 'underscore',
-            'debug', 'react-select', 'whatwg-fetch'
+            'react', 'reflux', 'sockjs-client', 'underscore', 'debug', 'whatwg-fetch'
         ]
     },
     output: {

@@ -6,8 +6,6 @@ import Store from './store';
 import defer from './defer';
 import loader from './loader';
 
-import './components';
-
 export default function app(transformer) {
     window.Translucent = {
         render: (func) => {
