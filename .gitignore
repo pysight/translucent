@@ -153,3 +153,7 @@ tmp/
 
 # translucent
 translucent/static/
+
+# IPython
+*.ipynb
+.ipynb-checkpoints/
