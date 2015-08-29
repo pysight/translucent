@@ -6,14 +6,13 @@ import actions from '../actions';
 class BindableComponent extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {value: Store.getEnv()[this.props.bind]};
+        this.state = {value: Store.getState().env.get(this.props.bind)};
     }
 
     onValueUpdate = () => {
         const key = Store.getState().update.key;
-        const env = Store.getEnv();
         if (key === this.props.bind || !key) {
-            this.setState({value: env[this.props.bind]});
+            this.setState({value: Store.getState().env.get(this.props.bind)});
         }
     }
 

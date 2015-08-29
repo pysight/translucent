@@ -1,7 +1,8 @@
 import SockJS from 'sockjs-client';
-import actions from './actions';
-import Store from './store';
+
 import log from './log';
+import Store from './store';
+import actions from './actions';
 
 const Message = {
     VALUE: 'value',

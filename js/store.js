@@ -1,32 +1,29 @@
 import _ from 'underscore';
+import Immutable from 'immutable';
+import immutable from 'alt/utils/ImmutableUtil';
 
+import log from './log';
 import alt from './alt';
 import actions from './actions';
-import log from './log';
 
+@immutable
 class Store {
     static displayName = 'Store';
 
     constructor() {
-        this.env = {};
         this.update = null;
+        this.env = new Immutable.Map();
         this.bindListeners({
             onChange: actions.UPDATE_ENV
-        });
-        this.exportPublicMethods({
-            getEnv: () => this.env,
-            getUpdate: () => this.update
         });
     }
 
     onChange({key, value, serverside}) {
         log('Store::onChange', {key, value, serverside});
-        if (_.isEqual(this.env[key], value)) {
+        if (_.isEqual(this.env.get(key), value)) {
             return false;
         }
-        let update = {};
-        update[key] = value;
-        this.env = Object.assign(this.env, update);
+        this.env = this.env.set(key, value);
         this.update = {key, value, serverside};
     }
 }
