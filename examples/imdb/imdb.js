@@ -7,6 +7,7 @@ let React = require('react');
 let _ = require('underscore');
 let BindableComponent = require('translucent/components/bindable');
 let Select = require('translucent/components/select');
+let translucent = require('translucent');
 
 class Frame extends React.Component {
     render() {
@@ -134,4 +135,4 @@ class Page extends React.Component {
     }
 }
 
-Translucent.render(env => <Page env={env} />);
+translucent.render(env => <Page env={env} />);

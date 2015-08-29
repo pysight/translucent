@@ -23,6 +23,8 @@ export default function(code) {
                 return require('./components/bindable');
             } else if (req === 'translucent/components/select') {
                 return require('./components/select');
+            } else if (req === 'translucent') {
+                return require('./client');
             }
         });
     }, 'extras');
