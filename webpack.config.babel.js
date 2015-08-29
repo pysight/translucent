@@ -1,19 +1,16 @@
 import path from 'path';
 import webpack from 'webpack';
 
-const STATIC = path.join(__dirname, 'translucent/static');
-const NPM = path.join(__dirname, 'node_modules');
-
 let config = {
     entry: {
-        'app-es5': `${__dirname}/js/app-es5`,
-        'app-jsx': `${__dirname}/js/app-jsx`,
+        'app-es5': path.join(__dirname, 'js/app-es5'),
+        'app-jsx': path.join(__dirname, 'js/app-jsx'),
         vendor: [
             'react', 'sockjs-client', 'underscore', 'debug', 'whatwg-fetch'
         ]
     },
     output: {
-        path: STATIC,
+        path: path.join(__dirname, 'translucent/static'),
         publicPath: '/static/',
         filename: '[name].bundle.js',
         chunkFilename: '[name].bundle.js'
