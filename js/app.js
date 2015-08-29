@@ -1,8 +1,9 @@
 import React from 'react';
+import _ from 'underscore';
 
 import defer from './defer';
 import loader from './loader';
-import Connection from './connection';
+import connect from './connect';
 import Container from './container';
 
 export default function app(transformer) {
@@ -12,11 +13,8 @@ export default function app(transformer) {
         }
     };
 
-    const evalJSX = defer(2, data => loader((transformer || (x => x))(data)));
-
-    const connection = new Connection(evalJSX);
-
-    fetch('/index.js')
-        .then(response => response.text())
-        .then(body => evalJSX(body));
+    const codeLoader = _.compose(loader, transformer || _.identity);
+    const evalUserCode = defer(2, codeLoader);
+    connect().then(evalUserCode);
+    fetch('/index.js').then(r => r.text()).then(evalUserCode);
 }

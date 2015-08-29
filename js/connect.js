@@ -1,3 +1,4 @@
+import _ from 'underscore';
 import SockJS from 'sockjs-client';
 
 import log from './log';
@@ -9,42 +10,24 @@ const Message = {
     READY: 'ready'
 };
 
-const $instance = Symbol();
-
-export default class Connection {
-    constructor(callback) {
-        if (Connection[$instance]) {
-            return Connection[$instance];
-        } else {
-            Connection[$instance] = this;
-        }
+class Connection {
+    constructor() {
+        this.callback = _.noop;
         this.conn = new SockJS(`http://${window.location.host}/api`);
-        this.callback = callback;
-        this.conn.onopen = this.onOpen;
-        this.conn.onclose = this.onClose;
-        this.conn.onmessage = this.onMessage;
-        this.ready = false;
+        this.conn.onopen = () => Store.listen(this.onStoreUpdate);
+        this.conn.onclose = () => Store.unlisten(this.onStoreUpdate);
+        this.conn.onmessage = this.onMessageReceived;
     }
 
-    send(data) {
+    sendMessage(data) {
         this.conn.send(JSON.stringify(data));
     }
 
-    onOpen = () => {
-        log('Connection::onOpen');
-        Store.listen(this.onChange);
-    }
-
-    onClose = () => {
-        log('Connection::onClose');
-        Store.unlisten(this.onChange);
-    }
-
-    onChange = () => {
+    onStoreUpdate = () => {
         let update = Store.getState().update;
         if (update && !update.serverside) {
-            log('Connection::onChange', update);
-            this.send({
+            log('Connection::onStoreUpdate', update);
+            this.sendMessage({
                 kind: Message.VALUE,
                 data: {
                     key: update.key,
@@ -54,7 +37,7 @@ export default class Connection {
         }
     }
 
-    onMessage = (msg) => {
+    onMessageReceived = (msg) => {
         const {kind, data} = JSON.parse(msg.data);
         log('Connection::onMessage', kind, data);
         if (kind === Message.VALUE) {
@@ -64,8 +47,17 @@ export default class Connection {
                 serverside: true
             });
         } else if (kind === Message.READY) {
-            this.ready = true;
             this.callback();
         }
     }
 }
+
+export default _.once(() => {
+    let connection = new Connection();
+    return {
+        then: callback => {
+            connection.callback = callback;
+        }
+    };
+});
+
