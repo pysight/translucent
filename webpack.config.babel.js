@@ -41,8 +41,7 @@ let config = {
         extensions: ['', '.js'],
         modulesDirectories: ['node_modules'],
         alias: {
-            'babel-transform': require.resolve('babel-core/browser.min'),
-            'react-select.less': `${NPM}/react-select/less/select.less`
+            'babel-transform': require.resolve('babel-core/browser.min')
         }
     },
     node: {
