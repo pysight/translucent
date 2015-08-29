@@ -14,19 +14,19 @@ class Container extends React.Component {
     }
 
     componentDidMount() {
-        Store.listen(this.onChange);
+        Store.listen(this.onStoreUpdate);
     }
 
     componentWillUnmount() {
-        Store.unlisten(this.onChange);
+        Store.unlisten(this.onStoreUpdate);
     }
 
     shouldComponentUpdate(nextProps, nextState) {
         return this.state.env !== nextState.env;
     }
 
-    onChange = () => {
-        log('Container::onChange');
+    onStoreUpdate = () => {
+        log('Container::onStoreUpdate');
         this.setState({env: Store.getState().env});
     }
 

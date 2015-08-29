@@ -9,7 +9,7 @@ class BindableComponent extends React.Component {
         this.state = {value: Store.getState().env.get(this.props.bind)};
     }
 
-    onValueUpdate = () => {
+    onStoreUpdate = () => {
         const key = Store.getState().update.key;
         if (key === this.props.bind || !key) {
             this.setState({value: Store.getState().env.get(this.props.bind)});
@@ -17,14 +17,14 @@ class BindableComponent extends React.Component {
     }
 
     componentDidMount() {
-        this.listener = Store.listen(this.onValueUpdate);
+        Store.listen(this.onStoreUpdate);
     }
 
     componentWillUnmount() {
-        this.listener.unlisten();
+        Store.unlisten(this.onStoreUpdate);
     }
 
-    onValueChange(value) {
+    updateValue(value) {
         actions.updateEnv({
             key: this.props.bind,
             value: value

@@ -9,7 +9,7 @@ class ReactSelect extends BindableComponent {
         if (this.props.onChange) {
             this.props.onChange(value);
         }
-        this.onValueChange(value);
+        this.updateValue(value);
     }
 
     render() {

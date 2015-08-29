@@ -26,7 +26,7 @@ class ListBox extends BindableComponent {
         if (value !== this.state.value) {
             React.findDOMNode(this.refs[value]).classList.add('active');
             React.findDOMNode(this.refs[this.state.value]).classList.remove('active');
-            this.onValueChange(value);
+            this.updateValue(value);
         }
     }
 
