@@ -1,6 +1,3 @@
-import { createActions } from 'reflux';
+import alt from './alt';
 
-export default createActions([
-    'updateEnv',
-    'sendAll'
-]);
+export default alt.generateActions('updateEnv');

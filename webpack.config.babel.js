@@ -9,7 +9,7 @@ let config = {
         'app-es5': `${__dirname}/js/app-es5`,
         'app-jsx': `${__dirname}/js/app-jsx`,
         vendor: [
-            'react', 'reflux', 'sockjs-client', 'underscore', 'debug', 'whatwg-fetch'
+            'react', 'sockjs-client', 'underscore', 'debug', 'whatwg-fetch'
         ]
     },
     output: {
@@ -20,9 +20,20 @@ let config = {
     },
     module: {
         loaders: [
-            { test: /\.css$/, loader: 'style!css' },
-            { test: /\.less$/, loader: 'style!css!less' },
-            { test: /\.js$/, exclude: /node_modules/, loader: 'babel', 'query': { 'stage': 0 }}
+            {
+                test: /\.css$/,
+                loader: 'style-loader!css'
+            },
+            {
+                test: /\.less$/,
+                loader: 'style-loader!css!less'
+            },
+            {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                loader: 'babel-loader',
+                query: { stage: 0, optional: ['runtime'] }
+            }
         ],
         noParse: [require.resolve('babel-core/browser.min')]
     },

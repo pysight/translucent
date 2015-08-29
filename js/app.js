@@ -1,19 +1,16 @@
 import React from 'react';
 
-import Connection from './connection';
-import Context from './context';
-import Store from './store';
 import defer from './defer';
 import loader from './loader';
+import Connection from './connection';
+import Container from './container';
 
 export default function app(transformer) {
     window.Translucent = {
         render: (func) => {
-            React.render(<Context render={func} />, document.body);
+            React.render(<Container render={func} />, document.body);
         }
     };
-
-    Store.getInitialState();
 
     const evalJSX = defer(2, data => loader((transformer || (x => x))(data)));
 

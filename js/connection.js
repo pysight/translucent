@@ -1,7 +1,12 @@
 import SockJS from 'sockjs-client';
-import { updateEnv } from './actions';
+import actions from './actions';
 import Store from './store';
 import log from './log';
+
+const Message = {
+    VALUE: 'value',
+    READY: 'ready'
+};
 
 const $instance = Symbol();
 
@@ -26,29 +31,38 @@ export default class Connection {
 
     onOpen = () => {
         log('Connection::onOpen');
-        this.unsubscribe = Store.listen(::this.sendValue, this);
+        Store.listen(this.onChange);
     }
 
     onClose = () => {
         log('Connection::onClose');
-        this.unsubscribe();
+        Store.unlisten(this.onChange);
     }
 
-    sendValue(env, key, client) {
-        log('Connection::sendValue', env, key, client);
-        if (client) {
-            this.send({kind: 'value', data: {key: key, value: env[key]}});
+    onChange = () => {
+        let update = Store.getState().update;
+        if (update && !update.serverside) {
+            log('Connection::onChange', update);
+            this.send({
+                kind: Message.VALUE,
+                data: {
+                    key: update.key,
+                    value: update.value
+                }
+            });
         }
     }
 
     onMessage = (msg) => {
         const {kind, data} = JSON.parse(msg.data);
         log('Connection::onMessage', kind, data);
-        if (kind === 'value') {
-            // use synchronous actions triggers before the store is fully populated
-            const trigger = this.ready ? updateEnv : updateEnv.trigger;
-            trigger.call(updateEnv, data.key, data.value, false);
-        } else if (kind === 'ready') {
+        if (kind === Message.VALUE) {
+            actions.updateEnv({
+                key: data.key,
+                value: data.value,
+                serverside: true
+            });
+        } else if (kind === Message.READY) {
             this.ready = true;
             this.callback();
         }

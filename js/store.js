@@ -1,27 +1,34 @@
-import Reflux from 'reflux';
 import _ from 'underscore';
-import Actions from './actions';
+
+import alt from './alt';
+import actions from './actions';
 import log from './log';
 
-export default Reflux.createStore({
-    listenables: [Actions],
+class Store {
+    static displayName = 'Store';
 
-    onUpdateEnv: function(key, value, client) {
-        log('Store::onUpdateEnv', key, value, client);
-        this.env = this.env || {};
-        if (!_.isEqual(this.env[key], value)) {
-            this.env[key] = value;
-            this.trigger(this.env, key, client);
-        }
-    },
-
-    onSendAll: function() {
-        log('onSendAll', this.env);
-        this.trigger(this.env);
-    },
-
-    getInitialState: function() {
-        this.env = this.env || {};
-        return this.env;
+    constructor() {
+        this.env = {};
+        this.update = null;
+        this.bindListeners({
+            onChange: actions.UPDATE_ENV
+        });
+        this.exportPublicMethods({
+            getEnv: () => this.env,
+            getUpdate: () => this.update
+        });
     }
-});
+
+    onChange({key, value, serverside}) {
+        log('Store::onChange', {key, value, serverside});
+        if (_.isEqual(this.env[key], value)) {
+            return false;
+        }
+        let update = {};
+        update[key] = value;
+        this.env = Object.assign(this.env, update);
+        this.update = {key, value, serverside};
+    }
+}
+
+export default alt.createStore(Store);
